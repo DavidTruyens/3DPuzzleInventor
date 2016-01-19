@@ -100,7 +100,7 @@ Public Class Form1
 
         Dim Length As Double
 
-        If XBox.Checked AndAlso YBox.Checked Then
+        If Zdir.Checked Then
             _SplitDir = 3
             If Xlength >= Ylength Then
                 Length = Xlength
@@ -109,7 +109,7 @@ Public Class Form1
                 Length = Ylength
                 MainDir = 2
             End If
-        ElseIf YBox.Checked AndAlso ZBox.Checked Then
+        ElseIf Xdir.Checked Then
             _SplitDir = 1
             If Ylength >= Zlength Then
                 Length = Ylength
@@ -120,7 +120,7 @@ Public Class Form1
             End If
         Else
             _SplitDir = 2
-            If Xlength >= Zlength Then
+            If Ydir.Checked Then
                 Length = Xlength
                 MainDir = 1
             Else
@@ -151,7 +151,7 @@ Public Class Form1
         Select Case MainDir.Key
             Case 1
                 basePlane = _Doc.ComponentDefinition.WorkPlanes.AddByPlaneAndOffset(_Doc.ComponentDefinition.WorkPlanes.Item(1), baseBody.RangeBox.MinPoint.X + offset)
-                If YBox.Checked Then
+                If Zdir.Checked Then
                     width = baseBody.RangeBox.MaxPoint.Y - baseBody.RangeBox.MinPoint.Y
                     _SecondarySlicesNumber = Math.Floor(width / Spacing)
                     secondaryOffset = (width - _SecondarySlicesNumber * Spacing) / 2
@@ -166,7 +166,7 @@ Public Class Form1
                 End If
             Case 2
                 basePlane = _Doc.ComponentDefinition.WorkPlanes.AddByPlaneAndOffset(_Doc.ComponentDefinition.WorkPlanes.Item(2), baseBody.RangeBox.MinPoint.Y + offset)
-                If XBox.Checked Then
+                If Zdir.Checked Then
                     width = baseBody.RangeBox.MaxPoint.X - baseBody.RangeBox.MinPoint.X
                     _SecondarySlicesNumber = Math.Floor(width / Spacing)
                     secondaryOffset = (width - _SecondarySlicesNumber * Spacing) / 2
@@ -181,7 +181,7 @@ Public Class Form1
                 End If
             Case Else
                 basePlane = _Doc.ComponentDefinition.WorkPlanes.AddByPlaneAndOffset(_Doc.ComponentDefinition.WorkPlanes.Item(3), baseBody.RangeBox.MinPoint.Z + offset)
-                If XBox.Checked Then
+                If Ydir.Checked Then
                     width = baseBody.RangeBox.MaxPoint.X - baseBody.RangeBox.MinPoint.X
                     _SecondarySlicesNumber = Math.Floor(width / Spacing)
                     secondaryOffset = (width - _SecondarySlicesNumber * Spacing) / 2
