@@ -49,8 +49,7 @@ Public Class Form1
 
         _Doc = _invApp.ActiveDocument
         _CompDef = _Doc.ComponentDefinition
-        ' _initialComp = _CompDef.SurfaceBodies.Count
-
+        _initialComp = _CompDef.SurfaceBodies.Count
         If Puzzletest() Then
             MsgBox("remove previous puzzle first")
         End If
