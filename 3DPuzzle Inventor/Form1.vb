@@ -74,7 +74,7 @@ Public Class Form1
         Dim MainDir As KeyValuePair(Of Integer, Double) = GetBoundingBoxLength(body)
         GenerateSlices(MainDir, body)
         makebodiesvisible()
-        '  CreateIntersections()
+        CreateIntersections()
     End Sub
 
     Function GetBody() As SurfaceBody
@@ -272,12 +272,7 @@ Public Class Form1
             BaseBody = _CompDef.SurfaceBodies.Item(PrimIndex + 1)
             For SecIndex = 1 To _SecondarySlicesNumber
                 ToolBody = _CompDef.SurfaceBodies.Item(SecIndex + NumberOfSlices.Value + _initialComp)
-                Try
-                    CreateIntersection(BaseBody, ToolBody)
-                Catch
-
-                End Try
-
+                CreateIntersection(BaseBody, ToolBody)
             Next
         Next
 
@@ -292,57 +287,82 @@ Public Class Form1
         'Create duplicate bodies
         Dim transBase As SurfaceBody = TransBody.Copy(BaseBody)
         Dim transTool As SurfaceBody = TransBody.Copy(ToolBody)
+        Try
+            'Create boolean
+            Call TransBody.DoBoolean(transBase, transTool, BooleanTypeEnum.kBooleanTypeIntersect)
+            'Create new solids
+            Dim transdef As NonParametricBaseFeatureDefinition
+            transdef = _CompDef.Features.NonParametricBaseFeatures.CreateDefinition()
+            Call objs.Add(transBase)
+            transdef.BRepEntities = objs
+            transdef.OutputType = BaseFeatureOutputTypeEnum.kSolidOutputType
 
-        'Create boolean
-        Call TransBody.DoBoolean(transBase, transTool, BooleanTypeEnum.kBooleanTypeIntersect)
-
-        'Create new solids
-        Dim transdef As NonParametricBaseFeatureDefinition
-        transdef = _CompDef.Features.NonParametricBaseFeatures.CreateDefinition()
-        Call objs.Add(transBase)
-        transdef.BRepEntities = objs
-        transdef.OutputType = BaseFeatureOutputTypeEnum.kSolidOutputType
-
-        _CompDef.Features.NonParametricBaseFeatures.AddByDefinition(transdef)
+            _CompDef.Features.NonParametricBaseFeatures.AddByDefinition(transdef)
+        Catch ex As Exception
+            Exit Sub
+        End Try
 
         'Create plane
         Dim LatestBody As SurfaceBody = _CompDef.SurfaceBodies.Item(_CompDef.SurfaceBodies.Count)
         Dim splitDist As Double
-        Dim WorkPts As WorkPoints = _CompDef.WorkPoints
+        'Dim WorkPts As WorkPoints = _CompDef.WorkPoints
         Dim WorkPlns As WorkPlanes = _CompDef.WorkPlanes
         Dim splitplane As WorkPlane
+        Dim Point1 As Point2d = _invApp.TransientGeometry.CreatePoint2d
+        Dim Point2 As Point2d = _invApp.TransientGeometry.CreatePoint2d
 
         Select Case _SplitDir
             Case 1
                 splitDist = (LatestBody.RangeBox.MaxPoint.X - LatestBody.RangeBox.MinPoint.X) / 2 + LatestBody.RangeBox.MinPoint.X
                 splitplane = WorkPlns.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(1), splitDist)
+                Point1.X = LatestBody.RangeBox.MinPoint.Y
+                Point1.Y = LatestBody.RangeBox.MinPoint.Z
+                Point2.X = LatestBody.RangeBox.MaxPoint.Y
+                Point2.Y = LatestBody.RangeBox.MaxPoint.Z
             Case 2
                 splitDist = (LatestBody.RangeBox.MaxPoint.Y - LatestBody.RangeBox.MinPoint.Y) / 2 + LatestBody.RangeBox.MinPoint.Y
                 splitplane = WorkPlns.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(2), splitDist)
+                Point1.X = LatestBody.RangeBox.MinPoint.X
+                Point1.Y = LatestBody.RangeBox.MinPoint.Z
+                Point2.X = LatestBody.RangeBox.MaxPoint.X
+                Point2.Y = LatestBody.RangeBox.MaxPoint.Z
+
             Case Else
                 splitDist = (LatestBody.RangeBox.MaxPoint.Z - LatestBody.RangeBox.MinPoint.Z) / 2 + LatestBody.RangeBox.MinPoint.Z
                 splitplane = WorkPlns.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(3), splitDist)
+                Point1.X = LatestBody.RangeBox.MinPoint.X
+                Point1.Y = LatestBody.RangeBox.MinPoint.Y
+                point2.X = LatestBody.RangeBox.MaxPoint.X
+                point2.Y = LatestBody.RangeBox.MaxPoint.Y
         End Select
 
         splitplane.Visible = False
 
-        'Split
-        Dim splitfeat As SplitFeature = _CompDef.Features.SplitFeatures.SplitBody(splitplane, LatestBody)
+        'Delete latest body feature
+        _CompDef.Features.NonParametricBaseFeatures.Item(1).Delete()
 
-        'Scale
-        'Dim DirectFs As DirectEditFeatures = _CompDef.Features.DirectEditFeatures
-        'Dim Scale As DirectEditScaleOperation = 
+        'Create new volume
+        Dim UpperSketch As PlanarSketch = _CompDef.Sketches.Add(splitplane)
+        UpperSketch.SketchLines.AddAsTwoPointRectangle(Point1, Point2)
+        Dim UpperProfile As Profile = UpperSketch.Profiles.AddForSolid()
+        Dim UpperExtDef As ExtrudeDefinition = _CompDef.Features.ExtrudeFeatures.CreateExtrudeDefinition(UpperProfile, PartFeatureOperationEnum.kCutOperation)
 
+        Dim Uppercoll As ObjectCollection = _invApp.TransientObjects.CreateObjectCollection
+        Call Uppercoll.Add(BaseBody)
+        UpperExtDef.AffectedBodies = Uppercoll
+        Call UpperExtDef.SetThroughAllExtent(PartFeatureExtentDirectionEnum.kPositiveExtentDirection)
+        _CompDef.Features.ExtrudeFeatures.Add(UpperExtDef)
 
-        'Bool
-        Dim CombineColl1 As ObjectCollection = _invApp.TransientObjects.CreateObjectCollection
-        CombineColl1.Add(_CompDef.SurfaceBodies.Item(_CompDef.SurfaceBodies.Count))
+        Dim LowerSketch As PlanarSketch = _CompDef.Sketches.Add(splitplane)
+        LowerSketch.SketchLines.AddAsTwoPointRectangle(Point1, Point2)
+        Dim LowerProfile As Profile = LowerSketch.Profiles.AddForSolid()
+        Dim LowerExtDef As ExtrudeDefinition = _CompDef.Features.ExtrudeFeatures.CreateExtrudeDefinition(LowerProfile, PartFeatureOperationEnum.kCutOperation)
 
-        Dim combo1 As CombineFeature = _CompDef.Features.CombineFeatures.Add(ToolBody, CombineColl1, PartFeatureOperationEnum.kCutOperation, False)
-
-        Dim CombineColl2 As ObjectCollection = _invApp.TransientObjects.CreateObjectCollection
-        CombineColl2.Add(_CompDef.SurfaceBodies.Item(_CompDef.SurfaceBodies.Count))
-        Dim combo2 As CombineFeature = _CompDef.Features.CombineFeatures.Add(BaseBody, CombineColl2, PartFeatureOperationEnum.kCutOperation, False)
+        Dim Lowercoll As ObjectCollection = _invApp.TransientObjects.CreateObjectCollection
+        Call Lowercoll.Add(ToolBody)
+        LowerExtDef.AffectedBodies = Lowercoll
+        Call LowerExtDef.SetThroughAllExtent(PartFeatureExtentDirectionEnum.kNegativeExtentDirection)
+        _CompDef.Features.ExtrudeFeatures.Add(LowerExtDef)
 
     End Sub
 
