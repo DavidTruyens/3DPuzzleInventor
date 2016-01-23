@@ -248,6 +248,8 @@ Public Class Form1
         exturdeprofiletest = contoursketch.Profiles.AddForSolid
         Debug.Print(exturdeprofiletest.Count)
 
+        'add function for more profiles
+
         Dim extrudetest As ExtrudeDefinition
         extrudetest = _CompDef.Features.ExtrudeFeatures.CreateExtrudeDefinition(exturdeprofiletest, PartFeatureOperationEnum.kNewBodyOperation)
         Call extrudetest.SetDistanceExtent(ExtrudeThickness, PartFeatureExtentDirectionEnum.kSymmetricExtentDirection)
@@ -267,15 +269,26 @@ Public Class Form1
         Dim SecIndex As Integer
         Dim BaseBody As SurfaceBody
         Dim ToolBody As SurfaceBody
+        Dim progressval As Integer = 0
+        Dim progressprocent As Double
+        Dim NumberofSlices As Integer = My.Forms.Form1.NumberOfSlices.Value
 
-        For PrimIndex = 1 To My.Forms.Form1.NumberOfSlices.Value
+        My.Forms.ProgressForm.Show()
+
+        For PrimIndex = 1 To NumberofSlices
             BaseBody = _CompDef.SurfaceBodies.Item(PrimIndex + 1)
             For SecIndex = 1 To _SecondarySlicesNumber
-                ToolBody = _CompDef.SurfaceBodies.Item(SecIndex + NumberOfSlices.Value + _initialComp)
+                ToolBody = _CompDef.SurfaceBodies.Item(SecIndex + NumberofSlices + _initialComp)
                 CreateIntersection(BaseBody, ToolBody)
-            Next
-        Next
+                progressval = (PrimIndex - 1) * _SecondarySlicesNumber + SecIndex
+                progressprocent = progressval / (NumberofSlices * _SecondarySlicesNumber)
 
+                My.Forms.ProgressForm.ProgressBar1.Value = CInt(progressprocent * My.Forms.ProgressForm.ProgressBar1.Maximum)
+                Debug.Print(progressprocent)
+            Next
+
+        Next
+        My.Forms.ProgressForm.Close()
     End Sub
 
     Sub CreateIntersection(BaseBody As SurfaceBody, ToolBody As SurfaceBody)
