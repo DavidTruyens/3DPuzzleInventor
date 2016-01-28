@@ -28,6 +28,7 @@ Partial Class Form1
         Me.SliceThickness = New System.Windows.Forms.NumericUpDown()
         Me.NumberOfSlices = New System.Windows.Forms.NumericUpDown()
         Me.GetBodyButton = New System.Windows.Forms.Button()
+        Me.NestButton = New System.Windows.Forms.Button()
         CType(Me.SliceThickness, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.NumberOfSlices, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.SuspendLayout()
@@ -71,7 +72,7 @@ Partial Class Form1
         Me.SliceThickness.Name = "SliceThickness"
         Me.SliceThickness.Size = New System.Drawing.Size(120, 20)
         Me.SliceThickness.TabIndex = 11
-        Me.SliceThickness.Value = New Decimal(New Integer() {5, 0, 0, 65536})
+        Me.SliceThickness.Value = New Decimal(New Integer() {36, 0, 0, 131072})
         '
         'NumberOfSlices
         '
@@ -90,11 +91,22 @@ Partial Class Form1
         Me.GetBodyButton.Text = "Get body"
         Me.GetBodyButton.UseVisualStyleBackColor = True
         '
+        'NestButton
+        '
+        Me.NestButton.Enabled = False
+        Me.NestButton.Location = New System.Drawing.Point(83, 153)
+        Me.NestButton.Name = "NestButton"
+        Me.NestButton.Size = New System.Drawing.Size(75, 23)
+        Me.NestButton.TabIndex = 16
+        Me.NestButton.Text = "Nest"
+        Me.NestButton.UseVisualStyleBackColor = True
+        '
         'Form1
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.ClientSize = New System.Drawing.Size(284, 261)
+        Me.Controls.Add(Me.NestButton)
         Me.Controls.Add(Me.GetBodyButton)
         Me.Controls.Add(Me.Ydir)
         Me.Controls.Add(Me.Zdir)
@@ -115,4 +127,5 @@ Partial Class Form1
     Friend WithEvents SliceThickness As NumericUpDown
     Friend WithEvents NumberOfSlices As NumericUpDown
     Friend WithEvents GetBodyButton As Button
+    Friend WithEvents NestButton As Button
 End Class

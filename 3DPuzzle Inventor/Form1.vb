@@ -14,6 +14,9 @@ Public Class Form1
     Dim _SecondarySlicesNumber As Integer
     Dim _initialComp As Integer
     Dim _PullDir As Integer = 1
+    Dim _PrimExtra As Integer = 0
+    Dim _SecondaryExtra As Integer = 0
+    Dim _BodyIndex As Integer = 0
 
     Public Sub New()
 
@@ -55,6 +58,8 @@ Public Class Form1
         End If
 
     End Sub
+
+    '************ Creating Puzzle ***********
 
     Function Puzzletest() As Boolean
 
@@ -143,8 +148,7 @@ Public Class Form1
 
         Spacing = MainDir.Value / NumberOfSlices.Value
 
-        Dim BodyIndex As Integer
-        BodyIndex = _initialComp + 1
+        _BodyIndex = _initialComp + 1
 
         'Dim boundingboxXmin As WorkPlane
         'Dim boundingboxXmax As WorkPlane
@@ -209,41 +213,70 @@ Public Class Form1
 
         Dim SliceIndex As Integer
         Dim SlicePlane As WorkPlane
+        Dim Ranking As String
 
         For SliceIndex = 1 To NumberOfSlices.Value
+            Ranking = "P"
             SlicePlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(basePlane, (SliceIndex - 1) * Spacing)
             SlicePlane.Visible = False
-            CreateSlice(SlicePlane, baseBody)
-            _CompDef.SurfaceBodies.Item(BodyIndex).Name = "P" & (SliceIndex)
-            _CompDef.SurfaceBodies.Item(BodyIndex).Visible = False
-            BodyIndex = BodyIndex + 1
+            CreateSlice(SlicePlane, baseBody, Ranking, SliceIndex)
         Next
 
         For SliceIndex = 1 To _SecondarySlicesNumber
+            Ranking = "S"
             SlicePlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(secondaryPlane, (SliceIndex - 1) * Spacing)
             SlicePlane.Visible = False
-            CreateSlice(SlicePlane, baseBody)
-            _CompDef.SurfaceBodies.Item(BodyIndex).Name = "S" & (SliceIndex)
-            _CompDef.SurfaceBodies.Item(BodyIndex).Visible = False
-            BodyIndex = BodyIndex + 1
+            CreateSlice(SlicePlane, baseBody, Ranking, SliceIndex)
         Next
     End Sub
 
-    Sub CreateSlice(SlicePlane As WorkPlane, Body As SurfaceBody)
+    Sub CreateSlice(SlicePlane As WorkPlane, Body As SurfaceBody, Ranking As String, SliceIndex As Integer)
         Dim contoursketch As PlanarSketch = _CompDef.Sketches.Add(SlicePlane)
         Dim ExtrudeThickness = CDbl(SliceThickness.Value)
         contoursketch.ProjectedCuts.Add()
 
         Dim exturdeprofiletest As Profile
-        exturdeprofiletest = contoursketch.Profiles.AddForSolid
+        exturdeprofiletest = contoursketch.Profiles.AddForSolid(True)
         Debug.Print(exturdeprofiletest.Count)
 
-        Dim extrudetest As ExtrudeDefinition
-        extrudetest = _CompDef.Features.ExtrudeFeatures.CreateExtrudeDefinition(exturdeprofiletest, PartFeatureOperationEnum.kNewBodyOperation)
-        Call extrudetest.SetDistanceExtent(ExtrudeThickness, PartFeatureExtentDirectionEnum.kSymmetricExtentDirection)
-        _CompDef.Features.ExtrudeFeatures.Add(extrudetest)
+        If exturdeprofiletest.Count = 1 Then
+            Dim extrudetest As ExtrudeDefinition
+            extrudetest = _CompDef.Features.ExtrudeFeatures.CreateExtrudeDefinition(exturdeprofiletest, PartFeatureOperationEnum.kNewBodyOperation)
+            Call extrudetest.SetDistanceExtent(ExtrudeThickness, PartFeatureExtentDirectionEnum.kSymmetricExtentDirection)
+            _CompDef.Features.ExtrudeFeatures.Add(extrudetest)
+            _CompDef.SurfaceBodies.Item(_BodyIndex).Name = Ranking & (SliceIndex)
+            _CompDef.SurfaceBodies.Item(_BodyIndex).Visible = False
+            _BodyIndex = _BodyIndex + 1
+        Else
+            Dim i As Integer
+            For i = 1 To exturdeprofiletest.Count
+                Dim newprof As Profile
+                newprof = contoursketch.Profiles.AddForSolid(False)
 
-        Debug.Print(contoursketch.ProjectedCuts.Count)
+                Dim j As Integer
+                Dim deleteIndex As Integer = 1
+                For j = 1 To exturdeprofiletest.Count - 1
+                    If i = j Then
+                        deleteIndex = 2
+                    End If
+                    newprof.Item(deleteIndex).Delete()
+                Next
+                Dim extrudetest As ExtrudeDefinition
+                extrudetest = _CompDef.Features.ExtrudeFeatures.CreateExtrudeDefinition(newprof, PartFeatureOperationEnum.kNewBodyOperation)
+                Call extrudetest.SetDistanceExtent(ExtrudeThickness, PartFeatureExtentDirectionEnum.kSymmetricExtentDirection)
+                _CompDef.Features.ExtrudeFeatures.Add(extrudetest)
+                _CompDef.SurfaceBodies.Item(_BodyIndex).Name = Ranking & (SliceIndex) & "-" & i
+                _CompDef.SurfaceBodies.Item(_BodyIndex).Visible = False
+                _BodyIndex = _BodyIndex + 1
+            Next
+        End If
+
+        If Ranking = "P" Then
+            _PrimExtra = exturdeprofiletest.Count - 1
+        Else
+            _SecondaryExtra = exturdeprofiletest.Count - 1
+        End If
+
     End Sub
 
     Sub makebodiesvisible()
@@ -281,6 +314,7 @@ Public Class Form1
         Dim progressprocent As Double
 
         My.Forms.ProgressForm.Show()
+        My.Forms.ProgressForm.TopMost = True
 
         For PrimIndex = 1 To NumberOfSlices.Value
             BaseBody = _CompDef.SurfaceBodies.Item(PrimIndex + _initialComp)
@@ -308,6 +342,7 @@ Public Class Form1
         'Create duplicate bodies
         Dim transBase As SurfaceBody = TransBody.Copy(BaseBody)
         Dim transTool As SurfaceBody = TransBody.Copy(ToolBody)
+
         Try
             'Create boolean
             Call TransBody.DoBoolean(transBase, transTool, BooleanTypeEnum.kBooleanTypeIntersect)
@@ -322,6 +357,37 @@ Public Class Form1
         Catch ex As Exception
             Exit Sub
         End Try
+
+        'Get slice plane coordinates
+        Dim primtext As String
+        Dim primnumber As Integer
+        Dim separator As Integer
+        Dim stringleng As Integer
+
+        primtext = BaseBody.Name.Remove(0, 1)
+        If IsNumeric(primtext) Then
+            primnumber = CInt(primtext)
+        Else
+            separator = primtext.IndexOf("-")
+            stringleng = primtext.Length
+            primtext = primtext.Remove(separator, (stringleng - separator))
+            primnumber = CInt(primtext)
+        End If
+        Debug.Print(primnumber)
+
+        Dim secondtext As String
+        Dim secondnumber As Integer
+
+        secondtext = ToolBody.Name.Remove(0, 1)
+        If IsNumeric(secondtext) Then
+            secondnumber = CInt(secondtext)
+        Else
+            separator = primtext.IndexOf("-")
+            stringleng = secondtext.Length
+            secondtext = secondtext.Remove(separator, (stringleng - separator))
+            secondnumber = CInt(secondtext)
+        End If
+
 
         'Create plane
         Dim LatestBody As SurfaceBody = _CompDef.SurfaceBodies.Item(_CompDef.SurfaceBodies.Count)
@@ -355,7 +421,6 @@ Public Class Form1
                 Point1.Y = LatestBody.RangeBox.MinPoint.Y
                 point2.X = LatestBody.RangeBox.MaxPoint.X
                 Point2.Y = LatestBody.RangeBox.MaxPoint.Y
-
         End Select
 
         splitplane.Visible = False
@@ -387,6 +452,23 @@ Public Class Form1
         _CompDef.Features.ExtrudeFeatures.Add(LowerExtDef)
 
     End Sub
+
+    '************* Nesting ************
+
+    Private Sub NestButton_Click(sender As Object, e As EventArgs) Handles NestButton.Click
+        FlattenBodies()
+        NestBodies()
+    End Sub
+
+    Private Sub FlattenBodies()
+
+    End Sub
+
+    Private Sub NestBodies()
+
+    End Sub
+
+    '************* Radio toggles *********
 
     Private Sub Xdir_CheckedChanged(sender As Object, e As EventArgs)
         If Xdir.Checked Then
