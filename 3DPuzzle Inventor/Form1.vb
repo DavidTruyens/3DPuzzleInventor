@@ -52,10 +52,6 @@ Public Class Form1
 
         _Doc = _invApp.ActiveDocument
         _CompDef = _Doc.ComponentDefinition
-        _initialComp = _CompDef.SurfaceBodies.Count
-        If Puzzletest() Then
-            MsgBox("remove previous puzzle first")
-        End If
 
     End Sub
 
@@ -77,9 +73,18 @@ Public Class Form1
     Private Sub GetBodyButton_Click(sender As Object, e As EventArgs) Handles GetBodyButton.Click
         Dim body As SurfaceBody = GetBody()
         Dim MainDir As KeyValuePair(Of Integer, Double) = GetBoundingBoxLength(body)
+
+        If Puzzletest() Then
+            MsgBox("remove previous puzzle first", MsgBoxStyle.SystemModal, "On Top")
+            Exit Sub
+        End If
+
+        _initialComp = _CompDef.SurfaceBodies.Count
+
         GenerateSlices(MainDir, body)
         makebodiesvisible()
         CreateIntersections()
+
     End Sub
 
     Function GetBody() As SurfaceBody
@@ -238,6 +243,7 @@ Public Class Form1
         Dim exturdeprofiletest As Profile
         exturdeprofiletest = contoursketch.Profiles.AddForSolid(True)
         Debug.Print(exturdeprofiletest.Count)
+        Dim FirstSolidProfile As Integer = _CompDef.SurfaceBodies.Count + 1
 
         If exturdeprofiletest.Count = 1 Then
             Dim extrudetest As ExtrudeDefinition
@@ -262,12 +268,49 @@ Public Class Form1
                     newprof.Item(deleteIndex).Delete()
                 Next
                 Dim extrudetest As ExtrudeDefinition
-                extrudetest = _CompDef.Features.ExtrudeFeatures.CreateExtrudeDefinition(newprof, PartFeatureOperationEnum.kNewBodyOperation)
-                Call extrudetest.SetDistanceExtent(ExtrudeThickness, PartFeatureExtentDirectionEnum.kSymmetricExtentDirection)
-                _CompDef.Features.ExtrudeFeatures.Add(extrudetest)
-                _CompDef.SurfaceBodies.Item(_BodyIndex).Name = Ranking & (SliceIndex) & "-" & i
-                _CompDef.SurfaceBodies.Item(_BodyIndex).Visible = False
-                _BodyIndex = _BodyIndex + 1
+                If i = 1 Then
+                    'Create first solid
+                    extrudetest = _CompDef.Features.ExtrudeFeatures.CreateExtrudeDefinition(newprof, PartFeatureOperationEnum.kNewBodyOperation)
+                    Call extrudetest.SetDistanceExtent(ExtrudeThickness, PartFeatureExtentDirectionEnum.kSymmetricExtentDirection)
+                    _CompDef.Features.ExtrudeFeatures.Add(extrudetest)
+                    _CompDef.SurfaceBodies.Item(_BodyIndex).Name = Ranking & (SliceIndex) & "-" & i
+                    _CompDef.SurfaceBodies.Item(_BodyIndex).Visible = False
+                    _BodyIndex = _BodyIndex + 1
+
+                Else
+                    'Try to use the second profile to remove a volume
+                    Dim startvolume As Double = _CompDef.SurfaceBodies.Item(FirstSolidProfile).Volume(95)
+                    extrudetest = _CompDef.Features.ExtrudeFeatures.CreateExtrudeDefinition(newprof, PartFeatureOperationEnum.kCutOperation)
+                    Dim firstprofilecol As ObjectCollection = _invApp.TransientObjects.CreateObjectCollection
+                    Call firstprofilecol.Add(_CompDef.SurfaceBodies.Item(FirstSolidProfile))
+                    extrudetest.AffectedBodies = firstprofilecol
+                    Call extrudetest.SetDistanceExtent(ExtrudeThickness, PartFeatureExtentDirectionEnum.kSymmetricExtentDirection)
+                    _CompDef.Features.ExtrudeFeatures.Add(extrudetest)
+
+                    If startvolume = _CompDef.SurfaceBodies.Item(FirstSolidProfile).Volume(95) Then
+                        'The cutfeature is only used as a test and should be removed
+
+                        _CompDef.Features.Item(_CompDef.Features.Count).SetEndOfPart(True)
+
+                        'Create a new solid with the new loop
+                        'Call _CompDef.Features.ExtendFeatures.Item(_CompDef.Features.ExtendFeatures.Count).Delete(False, False, False)
+                        extrudetest = _CompDef.Features.ExtrudeFeatures.CreateExtrudeDefinition(newprof, PartFeatureOperationEnum.kNewBodyOperation)
+                        Call extrudetest.SetDistanceExtent(ExtrudeThickness, PartFeatureExtentDirectionEnum.kSymmetricExtentDirection)
+                        _CompDef.Features.ExtrudeFeatures.Add(extrudetest)
+                        _CompDef.SurfaceBodies.Item(_BodyIndex).Name = Ranking & (SliceIndex) & "-" & i
+                        _CompDef.SurfaceBodies.Item(_BodyIndex).Visible = False
+                        _BodyIndex = _BodyIndex + 1
+                    Else
+                        'The cutfeature is only used as a test and should be removed
+
+                        'The previous body is using the wrong profile settings and should be removed as well
+
+                        'The new feature is created with correct profile settings
+
+
+                    End If
+                End If
+
             Next
         End If
 
@@ -443,7 +486,7 @@ Public Class Form1
         Dim LowerSketch As PlanarSketch = _CompDef.Sketches.Add(splitplane)
         LowerSketch.SketchLines.AddAsTwoPointRectangle(Point1, Point2)
         Dim LowerProfile As Profile = LowerSketch.Profiles.AddForSolid()
-        Dim LowerExtDef As ExtrudeDefinition = _CompDef.Features.ExtrudeFeatures.CreateExtrudeDefinition(LowerProfile, PartFeatureOperationEnum.kCutOperation)
+        Dim LowerExtDef As ExtrudeDefinition = _CompDef.Features.ExtrudeFeatures.CreateExtrudeDefinition(LowerProfile, PartFeatureOperationEnum.kIntersectOperation)
 
         Dim Lowercoll As ObjectCollection = _invApp.TransientObjects.CreateObjectCollection
         Call Lowercoll.Add(ToolBody)
