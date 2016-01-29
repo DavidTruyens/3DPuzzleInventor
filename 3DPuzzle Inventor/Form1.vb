@@ -287,32 +287,27 @@ Public Class Form1
                     Call extrudetest.SetDistanceExtent(ExtrudeThickness, PartFeatureExtentDirectionEnum.kSymmetricExtentDirection)
                     _CompDef.Features.ExtrudeFeatures.Add(extrudetest)
 
+                    'Check if the cut operation changed the existing solid
                     If startvolume = _CompDef.SurfaceBodies.Item(FirstSolidProfile).Volume(95) Then
-                        'The cutfeature is only used as a test and should be removed
-
-                        _CompDef.Features.Item(_CompDef.Features.Count).SetEndOfPart(True)
 
                         'Create a new solid with the new loop
-                        'Call _CompDef.Features.ExtendFeatures.Item(_CompDef.Features.ExtendFeatures.Count).Delete(False, False, False)
                         extrudetest = _CompDef.Features.ExtrudeFeatures.CreateExtrudeDefinition(newprof, PartFeatureOperationEnum.kNewBodyOperation)
                         Call extrudetest.SetDistanceExtent(ExtrudeThickness, PartFeatureExtentDirectionEnum.kSymmetricExtentDirection)
                         _CompDef.Features.ExtrudeFeatures.Add(extrudetest)
                         _CompDef.SurfaceBodies.Item(_BodyIndex).Name = Ranking & (SliceIndex) & "-" & i
                         _CompDef.SurfaceBodies.Item(_BodyIndex).Visible = False
                         _BodyIndex = _BodyIndex + 1
-                    Else
+
                         'The cutfeature is only used as a test and should be removed
-
-                        'The previous body is using the wrong profile settings and should be removed as well
-
-                        'The new feature is created with correct profile settings
-
+                        _CompDef.Features.Item(_CompDef.Features.Count - 1).Delete(True, True, True)
 
                     End If
                 End If
 
             Next
         End If
+
+        contoursketch.Visible = False
 
         If Ranking = "P" Then
             _PrimExtra = exturdeprofiletest.Count - 1
@@ -337,14 +332,14 @@ Public Class Form1
         Dim oFace As Face
         For Each oFace In FirstPrim.Faces
             ' Set the render style to be "As Feature". 
-            Call oFace.SetRenderStyle(StyleSourceTypeEnum.kOverrideRenderStyle, _Doc.RenderStyles.Item("Green"))
+            Call oFace.SetRenderStyle(StyleSourceTypeEnum.kOverrideRenderStyle, _Doc.RenderStyles.Item("Smooth - Dark Forest Green"))
         Next
 
         'Colour first Secondary Body
         Dim FirstSecondary As SurfaceBody = _CompDef.SurfaceBodies.Item(_initialComp + NumberOfSlices.Value + 1)
         For Each oFace In FirstSecondary.Faces
             ' Set the render style to be "As Feature". 
-            Call oFace.SetRenderStyle(StyleSourceTypeEnum.kOverrideRenderStyle, _Doc.RenderStyles.Item("LED - Red On"))
+            Call oFace.SetRenderStyle(StyleSourceTypeEnum.kOverrideRenderStyle, _Doc.RenderStyles.Item("Smooth - Red"))
         Next
     End Sub
 
