@@ -14,8 +14,12 @@ Public Class Form1
     Dim _SecondarySlicesNumber As Integer
     Dim _initialComp As Integer
     Dim _PullDir As Integer = 1
+    Dim _BodyIndex As Integer = 0
+    Dim _PrimExtra As Integer = 0
+    Dim _SecondaryExtra As Integer = 0
     Dim _PrimPlates As New List(Of Plate)
     Dim _SeconPlates As New List(Of Plate)
+
     Public Sub New()
 
         ' This call is required by the designer.
@@ -50,12 +54,10 @@ Public Class Form1
 
         _Doc = _invApp.ActiveDocument
         _CompDef = _Doc.ComponentDefinition
-        _initialComp = _CompDef.SurfaceBodies.Count
-        If Puzzletest() Then
-            MsgBox("remove previous puzzle first")
-        End If
 
     End Sub
+
+    '************ Creating Puzzle ***********
 
     Function Puzzletest() As Boolean
 
@@ -71,12 +73,20 @@ Public Class Form1
     End Function
 
     Private Sub GetBodyButton_Click(sender As Object, e As EventArgs) Handles GetBodyButton.Click
-
         Dim body As SurfaceBody = GetBody()
         Dim MainDir As KeyValuePair(Of Integer, Double) = GetBoundingBoxLength(body)
+
+        If Puzzletest() Then
+            MsgBox("remove previous puzzle first", MsgBoxStyle.SystemModal, "On Top")
+            Exit Sub
+        End If
+
+        _initialComp = _CompDef.SurfaceBodies.Count
+
         GenerateSlices(MainDir, body)
         makebodiesvisible()
         CreateIntersections()
+
     End Sub
 
     Function GetBody() As SurfaceBody
@@ -138,6 +148,7 @@ Public Class Form1
     Sub GenerateSlices(MainDir As KeyValuePair(Of Integer, Double), baseBody As SurfaceBody)
         Dim mainposition As Double
         Dim secondarypostion As Double
+
         Dim basePlane As WorkPlane
         Dim secondaryPlane As WorkPlane
         Dim width As Double
@@ -146,8 +157,7 @@ Public Class Form1
 
         Spacing = MainDir.Value / (NumberOfSlices.Value + 1)
 
-        Dim BodyIndex As Integer
-        BodyIndex = _CompDef.SurfaceBodies.Count + 1
+        __BodyIndex = _CompDef.SurfaceBodies.Count + 1
 
         'Dim boundingboxXmin As WorkPlane
         'Dim boundingboxXmax As WorkPlane
@@ -219,71 +229,136 @@ Public Class Form1
         basePlane.Visible = False
         secondaryPlane.Visible = False
 
-        CreateSlice(basePlane, baseBody)
-        Dim plateP1 As New Plate(mainposition, False, _CompDef.SurfaceBodies.Item(BodyIndex))
-        _PrimPlates.Add(plateP1)
-        plateP1.PlateSurfBodyID.Name = "P1"
-        plateP1.PlateSurfBodyID.Visible = False
-        BodyIndex = BodyIndex + 1
-
         Dim SliceIndex As Integer
         Dim SlicePlane As WorkPlane
+        Dim Ranking As String
 
-        For SliceIndex = 1 To (NumberOfSlices.Value - 1)
-            SlicePlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(basePlane, SliceIndex * Spacing)
+        For SliceIndex = 1 To NumberOfSlices.Value
+            Ranking = "P"
+            SlicePlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(basePlane, (SliceIndex - 1) * Spacing)
             SlicePlane.Visible = False
-            CreateSlice(SlicePlane, baseBody)
-            Dim plateP As New Plate(mainposition + SliceIndex * Spacing, False, _CompDef.SurfaceBodies.Item(BodyIndex))
+            CreateSlice(SlicePlane, baseBody, Ranking, SliceIndex)
+            Dim plateP As New Plate(mainposition + SliceIndex * Spacing, False, _CompDef.SurfaceBodies.Item(_BodyIndex))
             _PrimPlates.Add(plateP)
-            Debug.Print("Number of Primary plates = " & _PrimPlates.Count)
-            _CompDef.SurfaceBodies.Item(BodyIndex).Name = "P" & (SliceIndex + 1)
-            _CompDef.SurfaceBodies.Item(BodyIndex).Visible = False
-            BodyIndex = BodyIndex + 1
         Next
 
-        CreateSlice(secondaryPlane, baseBody)
-        Dim plateS1 As New Plate(secondarypostion, False, _CompDef.SurfaceBodies.Item(BodyIndex))
-        _SeconPlates.Add(plateS1)
-        _CompDef.SurfaceBodies.Item(BodyIndex).Name = "S1"
-        _CompDef.SurfaceBodies.Item(BodyIndex).Visible = False
-        BodyIndex = BodyIndex + 1
-
         For SliceIndex = 1 To _SecondarySlicesNumber
-            SlicePlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(secondaryPlane, SliceIndex * Spacing)
+            Ranking = "S"
+            SlicePlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(secondaryPlane, (SliceIndex - 1) * Spacing)
             SlicePlane.Visible = False
-            CreateSlice(SlicePlane, baseBody)
-            Dim plateS As New Plate(secondarypostion + SliceIndex * Spacing, False, _CompDef.SurfaceBodies.Item(BodyIndex))
+            CreateSlice(SlicePlane, baseBody, Ranking, SliceIndex)
+            Dim plateS As New Plate(secondarypostion + SliceIndex * Spacing, False, _CompDef.SurfaceBodies.Item(_BodyIndex))
             _SeconPlates.Add(plateS)
-            plateS.PlateSurfBodyID.Name = "S" & (SliceIndex + 1)
-            plateS.PlateSurfBodyID.Visible = False
-            BodyIndex = BodyIndex + 1
         Next
 
         MsgBox("Number of main plates = " & _PrimPlates.Count & vbNewLine & "Number of secondary plates = " & _SeconPlates.Count)
     End Sub
 
-    Sub CreateSlice(SlicePlane As WorkPlane, Body As SurfaceBody)
+    Sub CreateSlice(SlicePlane As WorkPlane, Body As SurfaceBody, Ranking As String, SliceIndex As Integer)
         Dim contoursketch As PlanarSketch = _CompDef.Sketches.Add(SlicePlane)
         Dim ExtrudeThickness = CDbl(SliceThickness.Value)
         contoursketch.ProjectedCuts.Add()
 
         Dim exturdeprofiletest As Profile
-        exturdeprofiletest = contoursketch.Profiles.AddForSolid
+        exturdeprofiletest = contoursketch.Profiles.AddForSolid(True)
         Debug.Print(exturdeprofiletest.Count)
+        Dim FirstSolidProfile As Integer = _CompDef.SurfaceBodies.Count + 1
 
-        'add function for more profiles
+        If exturdeprofiletest.Count = 1 Then
+            Dim extrudetest As ExtrudeDefinition
+            extrudetest = _CompDef.Features.ExtrudeFeatures.CreateExtrudeDefinition(exturdeprofiletest, PartFeatureOperationEnum.kNewBodyOperation)
+            Call extrudetest.SetDistanceExtent(ExtrudeThickness, PartFeatureExtentDirectionEnum.kSymmetricExtentDirection)
+            _CompDef.Features.ExtrudeFeatures.Add(extrudetest)
+            _CompDef.SurfaceBodies.Item(_BodyIndex).Name = Ranking & (SliceIndex)
+            _CompDef.SurfaceBodies.Item(_BodyIndex).Visible = False
+            _BodyIndex = _BodyIndex + 1
+        Else
+            Dim i As Integer
+            For i = 1 To exturdeprofiletest.Count
+                Dim newprof As Profile
+                newprof = contoursketch.Profiles.AddForSolid(False)
 
-        Dim extrudetest As ExtrudeDefinition
-        extrudetest = _CompDef.Features.ExtrudeFeatures.CreateExtrudeDefinition(exturdeprofiletest, PartFeatureOperationEnum.kNewBodyOperation)
-        Call extrudetest.SetDistanceExtent(ExtrudeThickness, PartFeatureExtentDirectionEnum.kSymmetricExtentDirection)
-        _CompDef.Features.ExtrudeFeatures.Add(extrudetest)
+                Dim j As Integer
+                Dim deleteIndex As Integer = 1
+                For j = 1 To exturdeprofiletest.Count - 1
+                    If i = j Then
+                        deleteIndex = 2
+                    End If
+                    newprof.Item(deleteIndex).Delete()
+                Next
+                Dim extrudetest As ExtrudeDefinition
+                If i = 1 Then
+                    'Create first solid
+                    extrudetest = _CompDef.Features.ExtrudeFeatures.CreateExtrudeDefinition(newprof, PartFeatureOperationEnum.kNewBodyOperation)
+                    Call extrudetest.SetDistanceExtent(ExtrudeThickness, PartFeatureExtentDirectionEnum.kSymmetricExtentDirection)
+                    _CompDef.Features.ExtrudeFeatures.Add(extrudetest)
+                    _CompDef.SurfaceBodies.Item(_BodyIndex).Name = Ranking & (SliceIndex) & "-" & i
+                    _CompDef.SurfaceBodies.Item(_BodyIndex).Visible = False
+                    _BodyIndex = _BodyIndex + 1
 
-        Debug.Print(contoursketch.ProjectedCuts.Count)
+                Else
+                    'Try to use the second profile to remove a volume
+                    Dim startvolume As Double = _CompDef.SurfaceBodies.Item(FirstSolidProfile).Volume(95)
+                    extrudetest = _CompDef.Features.ExtrudeFeatures.CreateExtrudeDefinition(newprof, PartFeatureOperationEnum.kCutOperation)
+                    Dim firstprofilecol As ObjectCollection = _invApp.TransientObjects.CreateObjectCollection
+                    Call firstprofilecol.Add(_CompDef.SurfaceBodies.Item(FirstSolidProfile))
+                    extrudetest.AffectedBodies = firstprofilecol
+                    Call extrudetest.SetDistanceExtent(ExtrudeThickness, PartFeatureExtentDirectionEnum.kSymmetricExtentDirection)
+                    _CompDef.Features.ExtrudeFeatures.Add(extrudetest)
+
+                    'Check if the cut operation changed the existing solid
+                    If startvolume = _CompDef.SurfaceBodies.Item(FirstSolidProfile).Volume(95) Then
+
+                        'Create a new solid with the new loop
+                        extrudetest = _CompDef.Features.ExtrudeFeatures.CreateExtrudeDefinition(newprof, PartFeatureOperationEnum.kNewBodyOperation)
+                        Call extrudetest.SetDistanceExtent(ExtrudeThickness, PartFeatureExtentDirectionEnum.kSymmetricExtentDirection)
+                        _CompDef.Features.ExtrudeFeatures.Add(extrudetest)
+                        _CompDef.SurfaceBodies.Item(_BodyIndex).Name = Ranking & (SliceIndex) & "-" & i
+                        _CompDef.SurfaceBodies.Item(_BodyIndex).Visible = False
+                        _BodyIndex = _BodyIndex + 1
+
+                        'The cutfeature is only used as a test and should be removed
+                        _CompDef.Features.Item(_CompDef.Features.Count - 1).Delete(True, True, True)
+
+                    End If
+                End If
+
+            Next
+        End If
+
+        contoursketch.Visible = False
+
+        If Ranking = "P" Then
+            _PrimExtra = exturdeprofiletest.Count - 1
+        Else
+            _SecondaryExtra = exturdeprofiletest.Count - 1
+        End If
+
     End Sub
 
     Sub makebodiesvisible()
         For Each body As SurfaceBody In _CompDef.SurfaceBodies
             body.Visible = True
+        Next
+
+        Dim previndex As Integer
+        For previndex = 1 To _initialComp
+            _CompDef.SurfaceBodies.Item(previndex).Visible = False
+        Next
+
+        'Colour first Prim Body
+        Dim FirstPrim As SurfaceBody = _CompDef.SurfaceBodies.Item(_initialComp + 1)
+        Dim oFace As Face
+        For Each oFace In FirstPrim.Faces
+            ' Set the render style to be "As Feature". 
+            Call oFace.SetRenderStyle(StyleSourceTypeEnum.kOverrideRenderStyle, _Doc.RenderStyles.Item("Smooth - Dark Forest Green"))
+        Next
+
+        'Colour first Secondary Body
+        Dim FirstSecondary As SurfaceBody = _CompDef.SurfaceBodies.Item(_initialComp + NumberOfSlices.Value + 1)
+        For Each oFace In FirstSecondary.Faces
+            ' Set the render style to be "As Feature". 
+            Call oFace.SetRenderStyle(StyleSourceTypeEnum.kOverrideRenderStyle, _Doc.RenderStyles.Item("Smooth - Red"))
         Next
     End Sub
 
