@@ -14,7 +14,8 @@ Public Class Form1
     Dim _SecondarySlicesNumber As Integer
     Dim _initialComp As Integer
     Dim _PullDir As Integer = 1
-
+    Dim _PrimPlates As New List(Of Plate)
+    Dim _SeconPlates As New List(Of Plate)
     Public Sub New()
 
         ' This call is required by the designer.
@@ -70,6 +71,7 @@ Public Class Form1
     End Function
 
     Private Sub GetBodyButton_Click(sender As Object, e As EventArgs) Handles GetBodyButton.Click
+
         Dim body As SurfaceBody = GetBody()
         Dim MainDir As KeyValuePair(Of Integer, Double) = GetBoundingBoxLength(body)
         GenerateSlices(MainDir, body)
@@ -134,7 +136,8 @@ Public Class Form1
     End Function
 
     Sub GenerateSlices(MainDir As KeyValuePair(Of Integer, Double), baseBody As SurfaceBody)
-
+        Dim mainposition As Double
+        Dim secondarypostion As Double
         Dim basePlane As WorkPlane
         Dim secondaryPlane As WorkPlane
         Dim width As Double
@@ -157,48 +160,57 @@ Public Class Form1
 
         Select Case MainDir.Key
             Case 1
-                basePlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(1), baseBody.RangeBox.MinPoint.X + Spacing / 2)
+                mainposition = baseBody.RangeBox.MinPoint.X + Spacing / 2
+                basePlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(1), mainposition)
                 If Zdir.Checked Then
                     width = baseBody.RangeBox.MaxPoint.Y - baseBody.RangeBox.MinPoint.Y
                     _SecondarySlicesNumber = Math.Floor(width / Spacing)
                     secondaryOffset = (width - _SecondarySlicesNumber * Spacing) / 2
-                    secondaryPlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(2), baseBody.RangeBox.MinPoint.Y + secondaryOffset)
+                    secondarypostion = baseBody.RangeBox.MinPoint.Y + secondaryOffset
+                    secondaryPlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(2), secondarypostion)
 
                 Else
                     width = baseBody.RangeBox.MaxPoint.Z - baseBody.RangeBox.MinPoint.Z
                     _SecondarySlicesNumber = Math.Floor(width / Spacing)
                     secondaryOffset = (width - _SecondarySlicesNumber * Spacing) / 2
-                    secondaryPlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(3), baseBody.RangeBox.MinPoint.Z + secondaryOffset)
+                    secondarypostion = baseBody.RangeBox.MinPoint.Z + secondaryOffset
+                    secondaryPlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(3), secondarypostion)
                 End If
 
             Case 2
-                basePlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(2), baseBody.RangeBox.MinPoint.Y + Spacing / 2)
+                mainposition = baseBody.RangeBox.MinPoint.Y + Spacing / 2
+                basePlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(2), mainposition)
                 If Zdir.Checked Then
                     width = baseBody.RangeBox.MaxPoint.X - baseBody.RangeBox.MinPoint.X
                     _SecondarySlicesNumber = Math.Floor(width / Spacing)
                     secondaryOffset = (width - _SecondarySlicesNumber * Spacing) / 2
-                    secondaryPlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(1), baseBody.RangeBox.MinPoint.X + secondaryOffset)
+                    secondarypostion = baseBody.RangeBox.MinPoint.X + secondaryOffset
+                    secondaryPlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(1), secondarypostion)
 
                 Else
                     width = baseBody.RangeBox.MaxPoint.Z - baseBody.RangeBox.MinPoint.Z
                     _SecondarySlicesNumber = Math.Floor(width / Spacing)
                     secondaryOffset = (width - _SecondarySlicesNumber * Spacing) / 2
-                    secondaryPlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(3), baseBody.RangeBox.MinPoint.Z + secondaryOffset)
+                    secondarypostion = baseBody.RangeBox.MinPoint.Z + secondaryOffset
+                    secondaryPlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(3), secondarypostion)
 
                 End If
             Case Else
-                basePlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(3), baseBody.RangeBox.MinPoint.Z + Spacing / 2)
+                mainposition = baseBody.RangeBox.MinPoint.Z + Spacing / 2
+                basePlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(3), mainposition)
                 If Ydir.Checked Then
                     width = baseBody.RangeBox.MaxPoint.X - baseBody.RangeBox.MinPoint.X
                     _SecondarySlicesNumber = Math.Floor(width / Spacing)
                     secondaryOffset = (width - _SecondarySlicesNumber * Spacing) / 2
-                    secondaryPlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(1), baseBody.RangeBox.MinPoint.X + secondaryOffset)
+                    secondarypostion = baseBody.RangeBox.MinPoint.X + secondaryOffset
+                    secondaryPlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(1), secondarypostion)
 
                 Else
                     width = baseBody.RangeBox.MaxPoint.Y - baseBody.RangeBox.MinPoint.Y
                     _SecondarySlicesNumber = Math.Floor(width / Spacing)
                     secondaryOffset = (width - _SecondarySlicesNumber * Spacing) / 2
-                    secondaryPlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(2), baseBody.RangeBox.MinPoint.Y + secondaryOffset)
+                    secondarypostion = baseBody.RangeBox.MinPoint.Y + secondaryOffset
+                    secondaryPlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(2), secondarypostion)
 
                 End If
         End Select
@@ -208,8 +220,10 @@ Public Class Form1
         secondaryPlane.Visible = False
 
         CreateSlice(basePlane, baseBody)
-        _CompDef.SurfaceBodies.Item(BodyIndex).Name = "P1"
-        _CompDef.SurfaceBodies.Item(BodyIndex).Visible = False
+        Dim plateP1 As New Plate(mainposition, False, _CompDef.SurfaceBodies.Item(BodyIndex))
+        _PrimPlates.Add(plateP1)
+        plateP1.PlateSurfBodyID.Name = "P1"
+        plateP1.PlateSurfBodyID.Visible = False
         BodyIndex = BodyIndex + 1
 
         Dim SliceIndex As Integer
@@ -219,12 +233,17 @@ Public Class Form1
             SlicePlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(basePlane, SliceIndex * Spacing)
             SlicePlane.Visible = False
             CreateSlice(SlicePlane, baseBody)
+            Dim plateP As New Plate(mainposition + SliceIndex * Spacing, False, _CompDef.SurfaceBodies.Item(BodyIndex))
+            _PrimPlates.Add(plateP)
+            Debug.Print("Number of Primary plates = " & _PrimPlates.Count)
             _CompDef.SurfaceBodies.Item(BodyIndex).Name = "P" & (SliceIndex + 1)
             _CompDef.SurfaceBodies.Item(BodyIndex).Visible = False
             BodyIndex = BodyIndex + 1
         Next
 
         CreateSlice(secondaryPlane, baseBody)
+        Dim plateS1 As New Plate(secondarypostion, False, _CompDef.SurfaceBodies.Item(BodyIndex))
+        _SeconPlates.Add(plateS1)
         _CompDef.SurfaceBodies.Item(BodyIndex).Name = "S1"
         _CompDef.SurfaceBodies.Item(BodyIndex).Visible = False
         BodyIndex = BodyIndex + 1
@@ -233,10 +252,14 @@ Public Class Form1
             SlicePlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(secondaryPlane, SliceIndex * Spacing)
             SlicePlane.Visible = False
             CreateSlice(SlicePlane, baseBody)
-            _CompDef.SurfaceBodies.Item(BodyIndex).Name = "S" & (SliceIndex + 1)
-            _CompDef.SurfaceBodies.Item(BodyIndex).Visible = False
+            Dim plateS As New Plate(secondarypostion + SliceIndex * Spacing, False, _CompDef.SurfaceBodies.Item(BodyIndex))
+            _SeconPlates.Add(plateS)
+            plateS.PlateSurfBodyID.Name = "S" & (SliceIndex + 1)
+            plateS.PlateSurfBodyID.Visible = False
             BodyIndex = BodyIndex + 1
         Next
+
+        MsgBox("Number of main plates = " & _PrimPlates.Count & vbNewLine & "Number of secondary plates = " & _SeconPlates.Count)
     End Sub
 
     Sub CreateSlice(SlicePlane As WorkPlane, Body As SurfaceBody)
@@ -265,41 +288,37 @@ Public Class Form1
     End Sub
 
     Sub CreateIntersections()
-        Dim PrimIndex As Integer
-        Dim SecIndex As Integer
-        Dim BaseBody As SurfaceBody
-        Dim ToolBody As SurfaceBody
+        Dim PrimIndex As Integer = 0
+        Dim SecIndex As Integer = 0
         Dim progressval As Integer = 0
         Dim progressprocent As Double
-        Dim NumberofSlices As Integer = My.Forms.Form1.NumberOfSlices.Value
 
         My.Forms.ProgressForm.Show()
 
-        For PrimIndex = 1 To NumberofSlices
-            BaseBody = _CompDef.SurfaceBodies.Item(PrimIndex + 1)
-            For SecIndex = 1 To _SecondarySlicesNumber
-                ToolBody = _CompDef.SurfaceBodies.Item(SecIndex + NumberofSlices + _initialComp)
-                CreateIntersection(BaseBody, ToolBody)
-                progressval = (PrimIndex - 1) * _SecondarySlicesNumber + SecIndex
-                progressprocent = progressval / (NumberofSlices * _SecondarySlicesNumber)
-
+        For Each MPlate As Plate In _PrimPlates
+            PrimIndex = PrimIndex + 1
+            For Each SPlate As Plate In _SeconPlates
+                CreateIntersection(MPlate, SPlate)
+                SecIndex = SecIndex + 1
+                progressval = (PrimIndex - 1) * _SeconPlates.Count + SecIndex
+                progressprocent = progressval / (_PrimPlates.Count * _SeconPlates.Count)
                 My.Forms.ProgressForm.ProgressBar1.Value = CInt(progressprocent * My.Forms.ProgressForm.ProgressBar1.Maximum)
                 Debug.Print(progressprocent)
             Next
-
         Next
+
         My.Forms.ProgressForm.Close()
     End Sub
 
-    Sub CreateIntersection(BaseBody As SurfaceBody, ToolBody As SurfaceBody)
+    Sub CreateIntersection(BasePlate As Plate, ToolPlate As Plate)
 
         Dim TransBody As TransientBRep = _invApp.TransientBRep
         Dim transGeo As TransientGeometry = _invApp.TransientGeometry
         Dim objs As ObjectCollection = _invApp.TransientObjects.CreateObjectCollection
 
         'Create duplicate bodies
-        Dim transBase As SurfaceBody = TransBody.Copy(BaseBody)
-        Dim transTool As SurfaceBody = TransBody.Copy(ToolBody)
+        Dim transBase As SurfaceBody = TransBody.Copy(BasePlate.PlateSurfBodyID)
+        Dim transTool As SurfaceBody = TransBody.Copy(ToolPlate.PlateSurfBodyID)
         Try
             'Create boolean
             Call TransBody.DoBoolean(transBase, transTool, BooleanTypeEnum.kBooleanTypeIntersect)
@@ -311,9 +330,13 @@ Public Class Form1
             transdef.OutputType = BaseFeatureOutputTypeEnum.kSolidOutputType
 
             _CompDef.Features.NonParametricBaseFeatures.AddByDefinition(transdef)
+
         Catch ex As Exception
             Exit Sub
         End Try
+
+        BasePlate.PlateHasCuts = True
+        ToolPlate.PlateHasCuts = True
 
         'Create plane
         Dim LatestBody As SurfaceBody = _CompDef.SurfaceBodies.Item(_CompDef.SurfaceBodies.Count)
@@ -345,8 +368,8 @@ Public Class Form1
                 splitplane = WorkPlns.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(3), splitDist)
                 Point1.X = LatestBody.RangeBox.MinPoint.X
                 Point1.Y = LatestBody.RangeBox.MinPoint.Y
-                point2.X = LatestBody.RangeBox.MaxPoint.X
-                point2.Y = LatestBody.RangeBox.MaxPoint.Y
+                Point2.X = LatestBody.RangeBox.MaxPoint.X
+                Point2.Y = LatestBody.RangeBox.MaxPoint.Y
         End Select
 
         splitplane.Visible = False
@@ -361,7 +384,7 @@ Public Class Form1
         Dim UpperExtDef As ExtrudeDefinition = _CompDef.Features.ExtrudeFeatures.CreateExtrudeDefinition(UpperProfile, PartFeatureOperationEnum.kCutOperation)
 
         Dim Uppercoll As ObjectCollection = _invApp.TransientObjects.CreateObjectCollection
-        Call Uppercoll.Add(BaseBody)
+        Call Uppercoll.Add(BasePlate.PlateSurfBodyID)
         UpperExtDef.AffectedBodies = Uppercoll
         Call UpperExtDef.SetThroughAllExtent(PartFeatureExtentDirectionEnum.kPositiveExtentDirection)
         _CompDef.Features.ExtrudeFeatures.Add(UpperExtDef)
@@ -372,7 +395,7 @@ Public Class Form1
         Dim LowerExtDef As ExtrudeDefinition = _CompDef.Features.ExtrudeFeatures.CreateExtrudeDefinition(LowerProfile, PartFeatureOperationEnum.kCutOperation)
 
         Dim Lowercoll As ObjectCollection = _invApp.TransientObjects.CreateObjectCollection
-        Call Lowercoll.Add(ToolBody)
+        Call Lowercoll.Add(ToolPlate.PlateSurfBodyID)
         LowerExtDef.AffectedBodies = Lowercoll
         Call LowerExtDef.SetThroughAllExtent(PartFeatureExtentDirectionEnum.kNegativeExtentDirection)
         _CompDef.Features.ExtrudeFeatures.Add(LowerExtDef)
@@ -403,6 +426,22 @@ Public Class Form1
         End If
     End Sub
 
-
 End Class
 
+Public Class Plate
+
+    Public PlatePosition As Double
+    Public PlateHasCuts As Boolean
+    Public PlateSurfBodyID As SurfaceBody
+
+    Public Sub New()
+
+    End Sub
+
+    Public Sub New(ByVal Position As Double, ByVal HasCuts As Boolean, SurfBodyID As SurfaceBody)
+        PlatePosition = Position
+        PlateHasCuts = HasCuts
+        PlateSurfBodyID = SurfBodyID
+    End Sub
+
+End Class
