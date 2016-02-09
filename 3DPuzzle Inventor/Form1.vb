@@ -17,6 +17,7 @@ Public Class Form1
     Dim _BodyIndex As Integer = 0
     Dim _PrimExtra As Integer = 0
     Dim _SecondaryExtra As Integer = 0
+    Dim _Spacing As Double
     Dim _PrimPlates As New List(Of Plate)
     Dim _SeconPlates As New List(Of Plate)
 
@@ -153,11 +154,11 @@ Public Class Form1
         Dim secondaryPlane As WorkPlane
         Dim width As Double
         Dim secondaryOffset As Double
-        Dim Spacing As Double
 
-        Spacing = MainDir.Value / (NumberOfSlices.Value + 1)
 
-        __BodyIndex = _CompDef.SurfaceBodies.Count + 1
+        _Spacing = MainDir.Value / NumberOfSlices.Value
+
+        _BodyIndex = _initialComp + 1
 
         'Dim boundingboxXmin As WorkPlane
         'Dim boundingboxXmax As WorkPlane
@@ -170,55 +171,55 @@ Public Class Form1
 
         Select Case MainDir.Key
             Case 1
-                mainposition = baseBody.RangeBox.MinPoint.X + Spacing / 2
+                mainposition = baseBody.RangeBox.MinPoint.X + _Spacing / 2
                 basePlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(1), mainposition)
                 If Zdir.Checked Then
                     width = baseBody.RangeBox.MaxPoint.Y - baseBody.RangeBox.MinPoint.Y
-                    _SecondarySlicesNumber = Math.Floor(width / Spacing)
-                    secondaryOffset = (width - _SecondarySlicesNumber * Spacing) / 2
+                    _SecondarySlicesNumber = Math.Floor(width / _Spacing)
+                    secondaryOffset = (width - (_SecondarySlicesNumber - 1) * _Spacing) / 2
                     secondarypostion = baseBody.RangeBox.MinPoint.Y + secondaryOffset
                     secondaryPlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(2), secondarypostion)
 
                 Else
                     width = baseBody.RangeBox.MaxPoint.Z - baseBody.RangeBox.MinPoint.Z
-                    _SecondarySlicesNumber = Math.Floor(width / Spacing)
-                    secondaryOffset = (width - _SecondarySlicesNumber * Spacing) / 2
+                    _SecondarySlicesNumber = Math.Floor(width / _Spacing)
+                    secondaryOffset = (width - (_SecondarySlicesNumber - 1) * _Spacing) / 2
                     secondarypostion = baseBody.RangeBox.MinPoint.Z + secondaryOffset
                     secondaryPlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(3), secondarypostion)
                 End If
 
             Case 2
-                mainposition = baseBody.RangeBox.MinPoint.Y + Spacing / 2
+                mainposition = baseBody.RangeBox.MinPoint.Y + _Spacing / 2
                 basePlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(2), mainposition)
                 If Zdir.Checked Then
                     width = baseBody.RangeBox.MaxPoint.X - baseBody.RangeBox.MinPoint.X
-                    _SecondarySlicesNumber = Math.Floor(width / Spacing)
-                    secondaryOffset = (width - _SecondarySlicesNumber * Spacing) / 2
+                    _SecondarySlicesNumber = Math.Floor(width / _Spacing)
+                    secondaryOffset = (width - (_SecondarySlicesNumber - 1) * _Spacing) / 2
                     secondarypostion = baseBody.RangeBox.MinPoint.X + secondaryOffset
                     secondaryPlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(1), secondarypostion)
 
                 Else
                     width = baseBody.RangeBox.MaxPoint.Z - baseBody.RangeBox.MinPoint.Z
-                    _SecondarySlicesNumber = Math.Floor(width / Spacing)
-                    secondaryOffset = (width - _SecondarySlicesNumber * Spacing) / 2
+                    _SecondarySlicesNumber = Math.Floor(width / _Spacing)
+                    secondaryOffset = (width - (_SecondarySlicesNumber - 1) * _Spacing) / 2
                     secondarypostion = baseBody.RangeBox.MinPoint.Z + secondaryOffset
                     secondaryPlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(3), secondarypostion)
 
                 End If
             Case Else
-                mainposition = baseBody.RangeBox.MinPoint.Z + Spacing / 2
+                mainposition = baseBody.RangeBox.MinPoint.Z + _Spacing / 2
                 basePlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(3), mainposition)
                 If Ydir.Checked Then
                     width = baseBody.RangeBox.MaxPoint.X - baseBody.RangeBox.MinPoint.X
-                    _SecondarySlicesNumber = Math.Floor(width / Spacing)
-                    secondaryOffset = (width - _SecondarySlicesNumber * Spacing) / 2
+                    _SecondarySlicesNumber = Math.Floor(width / _Spacing)
+                    secondaryOffset = (width - (_SecondarySlicesNumber - 1) * _Spacing) / 2
                     secondarypostion = baseBody.RangeBox.MinPoint.X + secondaryOffset
                     secondaryPlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(1), secondarypostion)
 
                 Else
                     width = baseBody.RangeBox.MaxPoint.Y - baseBody.RangeBox.MinPoint.Y
-                    _SecondarySlicesNumber = Math.Floor(width / Spacing)
-                    secondaryOffset = (width - _SecondarySlicesNumber * Spacing) / 2
+                    _SecondarySlicesNumber = Math.Floor(width / _Spacing)
+                    secondaryOffset = (width - (_SecondarySlicesNumber - 1) * _Spacing) / 2
                     secondarypostion = baseBody.RangeBox.MinPoint.Y + secondaryOffset
                     secondaryPlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(2), secondarypostion)
 
@@ -235,26 +236,23 @@ Public Class Form1
 
         For SliceIndex = 1 To NumberOfSlices.Value
             Ranking = "P"
-            SlicePlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(basePlane, (SliceIndex - 1) * Spacing)
+            SlicePlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(basePlane, (SliceIndex - 1) * _Spacing)
             SlicePlane.Visible = False
-            CreateSlice(SlicePlane, baseBody, Ranking, SliceIndex)
-            Dim plateP As New Plate(mainposition + SliceIndex * Spacing, False, _CompDef.SurfaceBodies.Item(_BodyIndex))
-            _PrimPlates.Add(plateP)
+            CreateSlice(SlicePlane, baseBody, Ranking, SliceIndex, mainposition)
         Next
 
         For SliceIndex = 1 To _SecondarySlicesNumber
             Ranking = "S"
-            SlicePlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(secondaryPlane, (SliceIndex - 1) * Spacing)
+            SlicePlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(secondaryPlane, (SliceIndex - 1) * _Spacing)
             SlicePlane.Visible = False
-            CreateSlice(SlicePlane, baseBody, Ranking, SliceIndex)
-            Dim plateS As New Plate(secondarypostion + SliceIndex * Spacing, False, _CompDef.SurfaceBodies.Item(_BodyIndex))
-            _SeconPlates.Add(plateS)
+            CreateSlice(SlicePlane, baseBody, Ranking, SliceIndex, secondarypostion)
+
         Next
 
         MsgBox("Number of main plates = " & _PrimPlates.Count & vbNewLine & "Number of secondary plates = " & _SeconPlates.Count)
     End Sub
 
-    Sub CreateSlice(SlicePlane As WorkPlane, Body As SurfaceBody, Ranking As String, SliceIndex As Integer)
+    Sub CreateSlice(SlicePlane As WorkPlane, Body As SurfaceBody, Ranking As String, SliceIndex As Integer, position As Double)
         Dim contoursketch As PlanarSketch = _CompDef.Sketches.Add(SlicePlane)
         Dim ExtrudeThickness = CDbl(SliceThickness.Value)
         contoursketch.ProjectedCuts.Add()
@@ -271,6 +269,13 @@ Public Class Form1
             _CompDef.Features.ExtrudeFeatures.Add(extrudetest)
             _CompDef.SurfaceBodies.Item(_BodyIndex).Name = Ranking & (SliceIndex)
             _CompDef.SurfaceBodies.Item(_BodyIndex).Visible = False
+            If Ranking = "P" Then
+                Dim plateP As New Plate(position + SliceIndex * _Spacing, False, _CompDef.SurfaceBodies.Item(_BodyIndex))
+                _PrimPlates.Add(plateP)
+            Else
+                Dim plateS As New Plate(position + SliceIndex * _Spacing, False, _CompDef.SurfaceBodies.Item(_BodyIndex))
+                _SeconPlates.Add(plateS)
+            End If
             _BodyIndex = _BodyIndex + 1
         Else
             Dim i As Integer
@@ -294,6 +299,13 @@ Public Class Form1
                     _CompDef.Features.ExtrudeFeatures.Add(extrudetest)
                     _CompDef.SurfaceBodies.Item(_BodyIndex).Name = Ranking & (SliceIndex) & "-" & i
                     _CompDef.SurfaceBodies.Item(_BodyIndex).Visible = False
+                    If Ranking = "P" Then
+                        Dim plateP As New Plate(position + SliceIndex * _Spacing, False, _CompDef.SurfaceBodies.Item(_BodyIndex))
+                        _PrimPlates.Add(plateP)
+                    Else
+                        Dim plateS As New Plate(position + SliceIndex * _Spacing, False, _CompDef.SurfaceBodies.Item(_BodyIndex))
+                        _SeconPlates.Add(plateS)
+                    End If
                     _BodyIndex = _BodyIndex + 1
 
                 Else
@@ -315,6 +327,13 @@ Public Class Form1
                         _CompDef.Features.ExtrudeFeatures.Add(extrudetest)
                         _CompDef.SurfaceBodies.Item(_BodyIndex).Name = Ranking & (SliceIndex) & "-" & i
                         _CompDef.SurfaceBodies.Item(_BodyIndex).Visible = False
+                        If Ranking = "P" Then
+                            Dim plateP As New Plate(position + SliceIndex * _Spacing, False, _CompDef.SurfaceBodies.Item(_BodyIndex))
+                            _PrimPlates.Add(plateP)
+                        Else
+                            Dim plateS As New Plate(position + SliceIndex * _Spacing, False, _CompDef.SurfaceBodies.Item(_BodyIndex))
+                            _SeconPlates.Add(plateS)
+                        End If
                         _BodyIndex = _BodyIndex + 1
 
                         'The cutfeature is only used as a test and should be removed
@@ -330,6 +349,7 @@ Public Class Form1
 
         If Ranking = "P" Then
             _PrimExtra = exturdeprofiletest.Count - 1
+
         Else
             _SecondaryExtra = exturdeprofiletest.Count - 1
         End If
@@ -371,15 +391,17 @@ Public Class Form1
         My.Forms.ProgressForm.Show()
 
         For Each MPlate As Plate In _PrimPlates
-            PrimIndex = PrimIndex + 1
+
             For Each SPlate As Plate In _SeconPlates
                 CreateIntersection(MPlate, SPlate)
                 SecIndex = SecIndex + 1
-                progressval = (PrimIndex - 1) * _SeconPlates.Count + SecIndex
+                progressval = PrimIndex * _SeconPlates.Count + SecIndex
                 progressprocent = progressval / (_PrimPlates.Count * _SeconPlates.Count)
                 My.Forms.ProgressForm.ProgressBar1.Value = CInt(progressprocent * My.Forms.ProgressForm.ProgressBar1.Maximum)
                 Debug.Print(progressprocent)
             Next
+            PrimIndex = PrimIndex + 1
+
         Next
 
         My.Forms.ProgressForm.Close()
@@ -476,6 +498,23 @@ Public Class Form1
         _CompDef.Features.ExtrudeFeatures.Add(LowerExtDef)
 
     End Sub
+
+    '************* Nesting ************
+
+    Private Sub NestButton_Click(sender As Object, e As EventArgs) Handles NestButton.Click
+        FlattenBodies()
+        NestBodies()
+    End Sub
+
+    Private Sub FlattenBodies()
+
+    End Sub
+
+    Private Sub NestBodies()
+
+    End Sub
+
+    '************* Radio toggles *********
 
     Private Sub Xdir_CheckedChanged(sender As Object, e As EventArgs)
         If Xdir.Checked Then
