@@ -4,6 +4,8 @@ Imports System.Type
 Imports System.Activator
 Imports System.Runtime.InteropServices
 Imports Inventor
+Imports System.IO
+
 
 Public Class Form1
     Public Shared _invApp As Inventor.Application
@@ -61,6 +63,24 @@ Public Class Form1
 
     '************ Start Puzzle ***********
 
+    Private Sub GetBodyButton_Click(sender As Object, e As EventArgs) Handles GetBodyButton.Click
+        Dim body As SurfaceBody = GetBody()
+        Dim MainDir As KeyValuePair(Of Integer, Double) = GetBoundingBoxLength(body)
+
+        If Puzzletest() Then
+            MsgBox("remove previous puzzle first", MsgBoxStyle.SystemModal, "On Top")
+            Exit Sub
+        End If
+
+        _initialComp = _CompDef.SurfaceBodies.Count
+        'CreateFolder()
+        GenerateSlices(MainDir, body)
+        makebodiesvisible()
+        CreateIntersections()
+        ' DXFExport()
+
+    End Sub
+
     Function Puzzletest() As Boolean
 
         Dim PreviousPuzzle As Boolean = False
@@ -73,23 +93,6 @@ Public Class Form1
         Next
         Return PreviousPuzzle
     End Function
-
-    Private Sub GetBodyButton_Click(sender As Object, e As EventArgs) Handles GetBodyButton.Click
-        Dim body As SurfaceBody = GetBody()
-        Dim MainDir As KeyValuePair(Of Integer, Double) = GetBoundingBoxLength(body)
-
-        If Puzzletest() Then
-            MsgBox("remove previous puzzle first", MsgBoxStyle.SystemModal, "On Top")
-            Exit Sub
-        End If
-
-        _initialComp = _CompDef.SurfaceBodies.Count
-
-        GenerateSlices(MainDir, body)
-        makebodiesvisible()
-        CreateIntersections()
-
-    End Sub
 
     Function GetBody() As SurfaceBody
         ' Have the bodies selected. 
@@ -274,6 +277,7 @@ Public Class Form1
     End Function
 
     Sub CreateSlice(SlicePlane As WorkPlane, Body As SurfaceBody, Ranking As String, SliceIndex As Integer, position As Double)
+        Dim NewPart As Boolean = True
         Dim contoursketch As PlanarSketch = _CompDef.Sketches.Add(SlicePlane)
         Dim ExtrudeThickness = CDbl(SliceThickness.Value)
         contoursketch.ProjectedCuts.Add()
@@ -291,10 +295,10 @@ Public Class Form1
             _CompDef.SurfaceBodies.Item(_BodyIndex).Name = Ranking & (SliceIndex)
             _CompDef.SurfaceBodies.Item(_BodyIndex).Visible = False
             If Ranking = "P" Then
-                Dim plateP As New Plate(position, False, _CompDef.SurfaceBodies.Item(_BodyIndex), False)
+                Dim plateP As New Plate(position, False, _CompDef.SurfaceBodies.Item(_BodyIndex), False, SlicePlane)
                 _PrimPlates.Add(plateP)
             Else
-                Dim plateS As New Plate(position, False, _CompDef.SurfaceBodies.Item(_BodyIndex), False)
+                Dim plateS As New Plate(position, False, _CompDef.SurfaceBodies.Item(_BodyIndex), False, SlicePlane)
                 _SeconPlates.Add(plateS)
             End If
             _BodyIndex = _BodyIndex + 1
@@ -320,14 +324,14 @@ Public Class Form1
                     _CompDef.Features.ExtrudeFeatures.Add(extrudetest)
                     _CompDef.SurfaceBodies.Item(_BodyIndex).Name = Ranking & (SliceIndex) & "-" & i
                     _CompDef.SurfaceBodies.Item(_BodyIndex).Visible = False
-                    If Ranking = "P" Then
-                        Dim plateP As New Plate(position, False, _CompDef.SurfaceBodies.Item(_BodyIndex), False)
-                        _PrimPlates.Add(plateP)
-                    Else
-                        Dim plateS As New Plate(position, False, _CompDef.SurfaceBodies.Item(_BodyIndex), False)
-                        _SeconPlates.Add(plateS)
-                    End If
-                    _BodyIndex = _BodyIndex + 1
+                    'If Ranking = "P" Then
+                    '    Dim plateP As New Plate(position, False, _CompDef.SurfaceBodies.Item(_BodyIndex), False, SlicePlane)
+                    '    _PrimPlates.Add(plateP)
+                    'Else
+                    '    Dim plateS As New Plate(position, False, _CompDef.SurfaceBodies.Item(_BodyIndex), False, SlicePlane)
+                    '    _SeconPlates.Add(plateS)
+                    'End If
+                    '_BodyIndex = _BodyIndex + 1
 
                 Else
                     'Try to use the second profile to remove a volume
@@ -349,21 +353,23 @@ Public Class Form1
                         _CompDef.SurfaceBodies.Item(_BodyIndex).Name = Ranking & (SliceIndex) & "-" & i
                         _CompDef.SurfaceBodies.Item(_BodyIndex).Visible = False
 
-                        If Ranking = "P" Then
-                            Dim plateP As New Plate(position, False, _CompDef.SurfaceBodies.Item(_BodyIndex), True)
-                            _PrimPlates.Add(plateP)
-                        Else
-                            Dim plateS As New Plate(position, False, _CompDef.SurfaceBodies.Item(_BodyIndex), True)
-                            _SeconPlates.Add(plateS)
-                        End If
-                        _BodyIndex = _BodyIndex + 1
-
                         'The cutfeature is only used as a test and should be removed
                         _CompDef.Features.Item(_CompDef.Features.Count - 1).Delete(False, False, False)
-
+                    Else
+                        NewPart = False
                     End If
-                End If
 
+                End If
+                If NewPart Then
+                    If Ranking = "P" Then
+                        Dim plateP As New Plate(position, False, _CompDef.SurfaceBodies.Item(_BodyIndex), False, SlicePlane)
+                        _PrimPlates.Add(plateP)
+                    Else
+                        Dim plateS As New Plate(position, False, _CompDef.SurfaceBodies.Item(_BodyIndex), False, SlicePlane)
+                        _SeconPlates.Add(plateS)
+                    End If
+                    _BodyIndex = _BodyIndex + 1
+                End If
             Next
         End If
 
@@ -379,21 +385,16 @@ Public Class Form1
     End Sub
 
     Sub makebodiesvisible()
-        'Zou vervangen moeten worden door onderstaande dat niet werkt (al is't niet zo belangrijk...)
-        For Each body As SurfaceBody In _CompDef.SurfaceBodies
-            body.Visible = True
+
+        For Each Pplate As Plate In _PrimPlates
+            Dim surf As Inventor.SurfaceBody = Pplate.PlateSurfBodyID
+            surf.Visible = True
         Next
 
-        'Waarom werkt dit niet?????
-        'For Each Pplate As Plate In _PrimPlates
-        '    Dim surf As Inventor.SurfaceBody = Pplate.PlateSurfBodyID
-        '    surf.Visible = True
-        'Next
-
-        'For Each Splate As Plate In _SeconPlates
-        '    Dim surf As SurfaceBody = Splate.PlateSurfBodyID
-        '    surf.Visible = True
-        'Next
+        For Each Splate As Plate In _SeconPlates
+            Dim surf As SurfaceBody = Splate.PlateSurfBodyID
+            surf.Visible = True
+        Next
 
         Dim previndex As Integer
         For previndex = 1 To _initialComp
@@ -425,23 +426,24 @@ Public Class Form1
         Dim progressval As Integer = 0
         Dim progressprocent As Double
 
-        'My.Forms.ProgressForm.Show()
+        My.Forms.ProgressForm.Show()
 
         For Each MPlate As Plate In _PrimPlates
-
+            SecIndex = 0
             For Each SPlate As Plate In _SeconPlates
                 CreateIntersection(MPlate, SPlate)
+                Debug.Print("Mplate = " & MPlate.PlateSurfBodyID.Name & " Splate = " & SPlate.PlateSurfBodyID.Name)
                 SecIndex = SecIndex + 1
-                'progressval = PrimIndex * _SeconPlates.Count + SecIndex
-                'progressprocent = progressval / (_PrimPlates.Count * _SeconPlates.Count)
-                'My.Forms.ProgressForm.ProgressBar1.Value = CInt(progressprocent * My.Forms.ProgressForm.ProgressBar1.Maximum)
-                'Debug.Print(progressprocent)
+                progressval = PrimIndex * _SeconPlates.Count + SecIndex
+                progressprocent = progressval / (_PrimPlates.Count * _SeconPlates.Count)
+                My.Forms.ProgressForm.ProgressBar1.Value = CInt(progressprocent * My.Forms.ProgressForm.ProgressBar1.Maximum)
+                Debug.Print(progressprocent)
             Next
             PrimIndex = PrimIndex + 1
 
         Next
 
-        'My.Forms.ProgressForm.Close()
+        My.Forms.ProgressForm.Close()
     End Sub
 
     Sub CreateIntersection(BasePlate As Plate, ToolPlate As Plate)
@@ -515,7 +517,7 @@ Public Class Form1
         'Delete latest body feature
         _CompDef.Features.NonParametricBaseFeatures.Item(1).Delete()
 
-        'Create cut in second plate
+        'Create cut in second plate  !!! Cut direction need to be added!!!
         Dim LowerSketch As PlanarSketch = _CompDef.Sketches.Add(splitplane)
         LowerSketch.SketchLines.AddAsTwoPointCenteredRectangle(Centerpoint, Cornerpoint)
         Dim LowerProfile As Profile = LowerSketch.Profiles.AddForSolid()
@@ -527,7 +529,7 @@ Public Class Form1
         Call LowerExtDef.SetThroughAllExtent(PartFeatureExtentDirectionEnum.kNegativeExtentDirection)
         _CompDef.Features.ExtrudeFeatures.Add(LowerExtDef)
 
-        'Create cut in first plate
+        'Create cut in first plate !!! Cut direction need to be added!!!
         If BasePlate.plateSecondary = False Then
             Dim UpperSketch As PlanarSketch = _CompDef.Sketches.Add(splitplane)
             UpperSketch.SketchLines.AddAsTwoPointCenteredRectangle(Centerpoint, Cornerpoint)
@@ -543,22 +545,40 @@ Public Class Form1
 
     End Sub
 
-    '************* Nesting ************
+    '************* DXF Export ************
 
-    Private Sub NestButton_Click(sender As Object, e As EventArgs) Handles NestButton.Click
-        FlattenBodies()
-        NestBodies()
-    End Sub
+    'Sub DXFExport()
+    '    CreateFolder()
+    '    For Each PPlate In _PrimPlates
 
-    Private Sub FlattenBodies()
-        For Each Pplate As Plate In _PrimPlates
+    '        HideAllButCurrent()
+    '        CreateSketch()
+    '        ExportSketch()
+    '    Next
+    'End Sub
 
-        Next
-    End Sub
+    'Sub CreateFolder()
+    '    _invApp.ActiveDocument.Save()
 
-    Private Sub NestBodies()
+    '    Dim DocProp As PropertySets = _Doc.PropertySets
+    '    Dim DocSum As PropertySet = DocProp.Item(1)
+    '    Dim fileName As  
+    '    Dim FileLocation As String = Replace(_invApp.ActiveDocument.FullDocumentName, _invApp.ActiveDocument.FullFileName, "")
+    '    MsgBox(FileLocation)
 
-    End Sub
+    'End Sub
+
+    'Sub HideAllButCurrent()
+
+    'End Sub
+
+    'Sub CreateSketch()
+
+    'End Sub
+
+    'Sub ExportSketch()
+
+    'End Sub
 
     '************* Radio toggles *********
 
@@ -593,17 +613,19 @@ Public Class Plate
     Public PlatePosition As Double
     Public PlateHasCuts As Boolean
     Public PlateSurfBodyID As SurfaceBody
-    Public plateSecondary As Boolean
+    Public PlateSecondary As Boolean
+    Public Plateplane As WorkPlane
 
     Public Sub New()
 
     End Sub
 
-    Public Sub New(ByVal Position As Double, ByVal HasCuts As Boolean, ByVal SurfBodyID As SurfaceBody, ByVal Secondary As Boolean)
+    Public Sub New(ByVal Position As Double, ByVal HasCuts As Boolean, ByVal SurfBodyID As SurfaceBody, ByVal Secondary As Boolean, ByVal sketchplane As WorkPlane)
         PlatePosition = Position
         PlateHasCuts = HasCuts
         PlateSurfBodyID = SurfBodyID
         PlateSecondary = Secondary
+        Plateplane = sketchplane
     End Sub
 
 End Class
