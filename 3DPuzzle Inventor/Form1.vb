@@ -20,9 +20,12 @@ Public Class Form1
     Dim _PrimExtra As Integer = 0
     Dim _SecondaryExtra As Integer = 0
     Dim _Spacing As Double
+    Dim _BaseBodyCenter As Double
     Dim _secondaryPlane As WorkPlane
+    Dim _Filelocation As String
     Dim _PrimPlates As New List(Of Plate)
     Dim _SeconPlates As New List(Of Plate)
+    Dim _DebugMode As Boolean = False
 
     Public Sub New()
 
@@ -64,6 +67,7 @@ Public Class Form1
     '************ Start Puzzle ***********
 
     Private Sub GetBodyButton_Click(sender As Object, e As EventArgs) Handles GetBodyButton.Click
+
         Dim body As SurfaceBody = GetBody()
         Dim MainDir As KeyValuePair(Of Integer, Double) = GetBoundingBoxLength(body)
 
@@ -73,12 +77,18 @@ Public Class Form1
         End If
 
         _initialComp = _CompDef.SurfaceBodies.Count
-        'CreateFolder()
         GenerateSlices(MainDir, body)
         makebodiesvisible()
         CreateIntersections()
-        ' DXFExport()
+        DXFExport()
 
+        MsgBox("All contours have been exported and can be found here:" & vbNewLine & _Filelocation & vbNewLine & "Click YES to go to the file location", MsgBoxStyle.YesNo)
+
+        If MsgBoxResult.Yes Then
+            Process.Start(_Filelocation)
+        End If
+
+        My.Forms.Form1.Close()
     End Sub
 
     Function Puzzletest() As Boolean
@@ -121,6 +131,7 @@ Public Class Form1
 
         If Zdir.Checked Then
             _SplitDir = 3
+            _BaseBodyCenter = Zlength / 2 + BoundingBox.MinPoint.Z
             If Xlength >= Ylength Then
                 Length = Xlength
                 MainDir = 1
@@ -130,6 +141,7 @@ Public Class Form1
             End If
         ElseIf Xdir.Checked Then
             _SplitDir = 1
+            _BaseBodyCenter = Xlength / 2 + BoundingBox.MinPoint.X
             If Ylength >= Zlength Then
                 Length = Ylength
                 MainDir = 2
@@ -139,6 +151,7 @@ Public Class Form1
             End If
         Else
             _SplitDir = 2
+            _BaseBodyCenter = Ylength / 2 + BoundingBox.MinPoint.Y
             If Ydir.Checked Then
                 Length = Xlength
                 MainDir = 1
@@ -324,14 +337,6 @@ Public Class Form1
                     _CompDef.Features.ExtrudeFeatures.Add(extrudetest)
                     _CompDef.SurfaceBodies.Item(_BodyIndex).Name = Ranking & (SliceIndex) & "-" & i
                     _CompDef.SurfaceBodies.Item(_BodyIndex).Visible = False
-                    'If Ranking = "P" Then
-                    '    Dim plateP As New Plate(position, False, _CompDef.SurfaceBodies.Item(_BodyIndex), False, SlicePlane)
-                    '    _PrimPlates.Add(plateP)
-                    'Else
-                    '    Dim plateS As New Plate(position, False, _CompDef.SurfaceBodies.Item(_BodyIndex), False, SlicePlane)
-                    '    _SeconPlates.Add(plateS)
-                    'End If
-                    '_BodyIndex = _BodyIndex + 1
 
                 Else
                     'Try to use the second profile to remove a volume
@@ -401,21 +406,22 @@ Public Class Form1
             _CompDef.SurfaceBodies.Item(previndex).Visible = False
         Next
 
-        'Colour first Prim Body
-        Dim FirstPrimBody As SurfaceBody = _PrimPlates.Item(0).PlateSurfBodyID
-        Dim oFace As Face
-        For Each oFace In FirstPrimBody.Faces
-            ' Set the render style to be "As Feature". 
-            Call oFace.SetRenderStyle(StyleSourceTypeEnum.kOverrideRenderStyle, _Doc.RenderStyles.Item("Smooth - Dark Forest Green"))
-        Next
+        If _DebugMode Then
+            'Colour first Prim Body
+            Dim FirstPrimBody As SurfaceBody = _PrimPlates.Item(0).PlateSurfBodyID
+            Dim oFace As Face
+            For Each oFace In FirstPrimBody.Faces
+                ' Set the render style to be "As Feature". 
+                Call oFace.SetRenderStyle(StyleSourceTypeEnum.kOverrideRenderStyle, _Doc.RenderStyles.Item("Smooth - Dark Forest Green"))
+            Next
 
-        'Colour first Secondary Body
-        Dim FirstSecondary As SurfaceBody = _SeconPlates.Item(0).PlateSurfBodyID
-        For Each oFace In FirstSecondary.Faces
-            ' Set the render style to be "As Feature". 
-            Call oFace.SetRenderStyle(StyleSourceTypeEnum.kOverrideRenderStyle, _Doc.RenderStyles.Item("Smooth - Red"))
-        Next
-
+            'Colour first Secondary Body
+            Dim FirstSecondary As SurfaceBody = _SeconPlates.Item(0).PlateSurfBodyID
+            For Each oFace In FirstSecondary.Faces
+                ' Set the render style to be "As Feature". 
+                Call oFace.SetRenderStyle(StyleSourceTypeEnum.kOverrideRenderStyle, _Doc.RenderStyles.Item("Smooth - Red"))
+            Next
+        End If
     End Sub
 
     '*********** Create Intersections ********
@@ -440,7 +446,18 @@ Public Class Form1
                 Debug.Print(progressprocent)
             Next
             PrimIndex = PrimIndex + 1
+        Next
 
+        For Each MPlate In _PrimPlates
+            If Not MPlate.PlateHasCuts Then
+                MPlate.PlateSurfBodyID.Visible = False
+            End If
+        Next
+
+        For Each Splate In _SeconPlates
+            If Not Splate.PlateHasCuts Then
+                Splate.PlateSurfBodyID.Visible = False
+            End If
         Next
 
         My.Forms.ProgressForm.Close()
@@ -514,10 +531,22 @@ Public Class Form1
 
         splitplane.Visible = False
 
+        'Calculate Cut Direction
+        Dim ToolPlatecutdirection As PartFeatureExtentDirectionEnum
+        Dim BasePlatecutdirection As PartFeatureExtentDirectionEnum
+        'Debug.Print("Base Position = " & _BaseBodyCenter & " BoolBody Position = " & splitDist)
+        If splitDist <= _BaseBodyCenter Then
+            ToolPlatecutdirection = PartFeatureExtentDirectionEnum.kNegativeExtentDirection
+            BasePlatecutdirection = PartFeatureExtentDirectionEnum.kPositiveExtentDirection
+        Else
+            ToolPlatecutdirection = PartFeatureExtentDirectionEnum.kPositiveExtentDirection
+            BasePlatecutdirection = PartFeatureExtentDirectionEnum.kNegativeExtentDirection
+        End If
+
         'Delete latest body feature
         _CompDef.Features.NonParametricBaseFeatures.Item(1).Delete()
 
-        'Create cut in second plate  !!! Cut direction need to be added!!!
+        'Create cut in second plate
         Dim LowerSketch As PlanarSketch = _CompDef.Sketches.Add(splitplane)
         LowerSketch.SketchLines.AddAsTwoPointCenteredRectangle(Centerpoint, Cornerpoint)
         Dim LowerProfile As Profile = LowerSketch.Profiles.AddForSolid()
@@ -526,59 +555,105 @@ Public Class Form1
         Dim Lowercoll As ObjectCollection = _invApp.TransientObjects.CreateObjectCollection
         Call Lowercoll.Add(ToolPlate.PlateSurfBodyID)
         LowerExtDef.AffectedBodies = Lowercoll
-        Call LowerExtDef.SetThroughAllExtent(PartFeatureExtentDirectionEnum.kNegativeExtentDirection)
+        Call LowerExtDef.SetThroughAllExtent(ToolPlatecutdirection)
         _CompDef.Features.ExtrudeFeatures.Add(LowerExtDef)
 
-        'Create cut in first plate !!! Cut direction need to be added!!!
-        If BasePlate.plateSecondary = False Then
-            Dim UpperSketch As PlanarSketch = _CompDef.Sketches.Add(splitplane)
-            UpperSketch.SketchLines.AddAsTwoPointCenteredRectangle(Centerpoint, Cornerpoint)
-            Dim UpperProfile As Profile = UpperSketch.Profiles.AddForSolid()
-            Dim UpperExtDef As ExtrudeDefinition = _CompDef.Features.ExtrudeFeatures.CreateExtrudeDefinition(UpperProfile, PartFeatureOperationEnum.kCutOperation)
+        'Create cut in first plate
+        'If BasePlate.plateSecondary = False Then
+        Dim UpperSketch As PlanarSketch = _CompDef.Sketches.Add(splitplane)
+        UpperSketch.SketchLines.AddAsTwoPointCenteredRectangle(Centerpoint, Cornerpoint)
+        Dim UpperProfile As Profile = UpperSketch.Profiles.AddForSolid()
+        Dim UpperExtDef As ExtrudeDefinition = _CompDef.Features.ExtrudeFeatures.CreateExtrudeDefinition(UpperProfile, PartFeatureOperationEnum.kCutOperation)
 
-            Dim Uppercoll As ObjectCollection = _invApp.TransientObjects.CreateObjectCollection
-            Call Uppercoll.Add(BasePlate.PlateSurfBodyID)
-            UpperExtDef.AffectedBodies = Uppercoll
-            Call UpperExtDef.SetThroughAllExtent(PartFeatureExtentDirectionEnum.kPositiveExtentDirection)
-            _CompDef.Features.ExtrudeFeatures.Add(UpperExtDef)
-        End If
+        Dim Uppercoll As ObjectCollection = _invApp.TransientObjects.CreateObjectCollection
+        Call Uppercoll.Add(BasePlate.PlateSurfBodyID)
+        UpperExtDef.AffectedBodies = Uppercoll
+        Call UpperExtDef.SetThroughAllExtent(BasePlatecutdirection)
+        _CompDef.Features.ExtrudeFeatures.Add(UpperExtDef)
+        'End If
 
     End Sub
 
     '************* DXF Export ************
 
-    'Sub DXFExport()
-    '    CreateFolder()
-    '    For Each PPlate In _PrimPlates
+    Sub DXFExport()
 
-    '        HideAllButCurrent()
-    '        CreateSketch()
-    '        ExportSketch()
-    '    Next
-    'End Sub
+        CreateFolder()
+        For Each PPlate In _PrimPlates
+            If PPlate.PlateHasCuts Then
+                HideAllButCurrent(PPlate)
+                CreateDXF(PPlate)
+            End If
+        Next
 
-    'Sub CreateFolder()
-    '    _invApp.ActiveDocument.Save()
+        For Each SPlate In _SeconPlates
+            If SPlate.PlateHasCuts Then
+                HideAllButCurrent(SPlate)
+                CreateDXF(SPlate)
+            End If
+        Next
 
-    '    Dim DocProp As PropertySets = _Doc.PropertySets
-    '    Dim DocSum As PropertySet = DocProp.Item(1)
-    '    Dim fileName As  
-    '    Dim FileLocation As String = Replace(_invApp.ActiveDocument.FullDocumentName, _invApp.ActiveDocument.FullFileName, "")
-    '    MsgBox(FileLocation)
+        For Each MPlate In _PrimPlates
+            If MPlate.PlateHasCuts Then
+                MPlate.PlateSurfBodyID.Visible = True
+            Else
+                MPlate.PlateSurfBodyID.Visible = False
+            End If
+        Next
 
-    'End Sub
+        For Each Splate In _SeconPlates
+            If Splate.PlateHasCuts Then
+                Splate.PlateSurfBodyID.Visible = True
+            Else
+                Splate.PlateSurfBodyID.Visible = False
+            End If
+        Next
 
-    'Sub HideAllButCurrent()
+    End Sub
 
-    'End Sub
+    Sub CreateFolder()
 
-    'Sub CreateSketch()
+        _invApp.ActiveDocument.Save()
 
-    'End Sub
+        Dim path As String = System.IO.Path.GetDirectoryName(_Doc.FullFileName)
+        Dim filename As String = Replace(_Doc.FullFileName, path, "")
+        Dim name As String = Replace(filename, ".ipt", "")
 
-    'Sub ExportSketch()
+        _Filelocation = path + name
 
-    'End Sub
+        If (System.IO.Directory.Exists(_Filelocation)) Then
+            Dim ToD As String = TimeOfDay.ToShortTimeString
+            ToD = Replace(ToD, ":", "-")
+            _Filelocation = _Filelocation + " " + ToD
+            System.IO.Directory.CreateDirectory(_Filelocation)
+        Else
+            System.IO.Directory.CreateDirectory(_Filelocation)
+        End If
+
+    End Sub
+
+    Private Sub HideAllButCurrent(toolbody As Plate)
+        For Each body As SurfaceBody In _CompDef.SurfaceBodies
+            If body.Name = toolbody.PlateSurfBodyID.Name Then
+                body.Visible = True
+            Else
+                body.Visible = False
+            End If
+        Next
+    End Sub
+
+    Private Sub CreateDXF(toolbody As Plate)
+        'create sketch with cut edges
+        Dim contoursketch As PlanarSketch = _CompDef.Sketches.Add(toolbody.Plateplane)
+        contoursketch.ProjectedCuts.Add()
+
+        'export sketch to dxf
+        Call contoursketch.DataIO.WriteDataToFile("DXF", _Filelocation & "\" & toolbody.PlateSurfBodyID.Name & ".dxf")
+
+        'rename and hide sketch
+        contoursketch.Name = "DXF-" & toolbody.PlateSurfBodyID.Name
+        contoursketch.Visible = False
+    End Sub
 
     '************* Radio toggles *********
 
