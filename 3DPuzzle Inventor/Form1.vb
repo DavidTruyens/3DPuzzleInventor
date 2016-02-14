@@ -26,6 +26,7 @@ Public Class Form1
     Dim _PrimPlates As New List(Of Plate)
     Dim _SeconPlates As New List(Of Plate)
     Dim _DebugMode As Boolean = False
+    Dim _Colormode As Boolean = True
 
     Public Sub New()
 
@@ -72,19 +73,29 @@ Public Class Form1
         Dim MainDir As KeyValuePair(Of Integer, Double) = GetBoundingBoxLength(body)
 
         If Puzzletest() Then
-            MsgBox("remove previous puzzle first", MsgBoxStyle.SystemModal, "On Top")
-            Exit Sub
+            Dim msg1res As DialogResult
+            msg1res = MsgBox("A puzzle was already created, would you like to delete it?", MsgBoxStyle.YesNo, "Puzzletest") '& MsgBoxStyle.SystemModal, "On Top"
+            If msg1res = DialogResult.Yes Then
+                Exit Sub
+                'deletefeatures()
+            Else
+                Exit Sub
+            End If
         End If
 
         _initialComp = _CompDef.SurfaceBodies.Count
+        If _DebugMode Then
+            boundingboxcheck(body)
+        End If
         GenerateSlices(MainDir, body)
         makebodiesvisible()
         CreateIntersections()
         DXFExport()
 
-        MsgBox("All contours have been exported and can be found here:" & vbNewLine & _Filelocation & vbNewLine & "Click YES to go to the file location", MsgBoxStyle.YesNo)
+        Dim FileMsg As DialogResult
+        FileMsg = MsgBox("All contours have been exported and can be found here:" & vbNewLine & _Filelocation & vbNewLine & "Click YES to go to the file location", MsgBoxStyle.YesNo)
 
-        If MsgBoxResult.Yes Then
+        If FileMsg = DialogResult.Yes Then
             Process.Start(_Filelocation)
         End If
 
@@ -103,6 +114,57 @@ Public Class Form1
         Next
         Return PreviousPuzzle
     End Function
+
+    Sub deletefeatures()
+        'Does not work yet... :-(
+        Dim oBrowserNode As BrowserNode
+        Dim oBrowserPanes As BrowserPanes = _Doc.BrowserPanes
+        Dim oBrowserPane As BrowserPane = (From _pan As BrowserPane In oBrowserPanes Where _pan.TreeBrowser Select _pan).FirstOrDefault
+        Dim dodelete As Boolean = True
+        Dim oCollection As ObjectCollection = _invApp.TransientObjects.CreateObjectCollection
+
+        If dodelete Then
+            oBrowserNode = oBrowserPane.TopNode.BrowserNodes.Item(oBrowserPane.TopNode.BrowserNodes.Count - 1)
+            If oBrowserNode.BrowserNodeDefinition.Label = "START PUZZLE" Then
+                dodelete = False
+            End If
+            oBrowserNode.Delete()
+        End If
+
+    End Sub
+
+    Sub DeleteEOP()
+
+        Dim BrsPanes As BrowserPanes = _invApp.ActiveDocument.BrowserPanes
+        Dim BrsPan As Inventor.BrowserPane = (From _Pan As BrowserPane In BrsPanes Where _Pan.TreeBrowser Select _Pan).FirstOrDefault
+
+        Dim DoDelete As Boolean = False
+        Dim ObjCollection As ObjectCollection = _invApp.TransientObjects.CreateObjectCollection()
+
+        'Dim PuzzleStart As Integer
+
+        'For Each _node As BrowserNode In BrsPan.TopNode.BrowserNodes
+        '    If _node.BrowserNodeDefinition.Label = "START PUZZLE" Then
+        '        _node.
+        '    End If
+        'Next
+
+        _CompDef.en
+
+        For Each _node As BrowserNode In BrsPan.TopNode.BrowserNodes
+            If DoDelete Then
+                Dim obj = _node.NativeObject
+                ObjCollection.Add(obj)
+            End If
+            Dim def = _node.BrowserNodeDefinition
+            Dim x = def.Label
+            If x.ToUpper().Contains("END OF PART") Then
+                DoDelete = True
+            End If
+        Next
+
+        _CompDef.DeleteObjects(ObjCollection)
+    End Sub
 
     Function GetBody() As SurfaceBody
         ' Have the bodies selected. 
@@ -152,7 +214,8 @@ Public Class Form1
         Else
             _SplitDir = 2
             _BaseBodyCenter = Ylength / 2 + BoundingBox.MinPoint.Y
-            If Ydir.Checked Then
+
+            If Xlength >= Zlength Then
                 Length = Xlength
                 MainDir = 1
             Else
@@ -174,9 +237,6 @@ Public Class Form1
         _Spacing = MainDir.Value / NumberOfSlices.Value
 
         _BodyIndex = _initialComp + 1
-
-        'next function creates boundingboxplanes to check the deviation with the real model (boundingbox is not always exact in inventor...)
-        'boundingboxcheck(baseBody)
 
         Select Case MainDir.Key
             Case 1
@@ -254,6 +314,22 @@ Public Class Form1
         boundingboxZmin = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(3), basebody.RangeBox.MinPoint.Z)
         boundingboxZmax = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(3), basebody.RangeBox.MaxPoint.Z)
 
+        boundingboxXmin.Name = "Xmin"
+        boundingboxXmax.Name = "Xmax"
+        boundingboxYmin.Name = "Ymin"
+        boundingboxYmax.Name = "Ymax"
+        boundingboxZmin.Name = "Zmin"
+        boundingboxZmax.Name = "Zmax"
+
+        boundingboxXmin.Visible = False
+        boundingboxXmax.Visible = False
+        boundingboxYmin.Visible = False
+        boundingboxYmax.Visible = False
+        boundingboxZmin.Visible = False
+        boundingboxZmax.Visible = False
+
+
+
     End Sub
 
     Function SecondaryStart(BaseBody As SurfaceBody, planenumber As Integer) As Double
@@ -308,10 +384,10 @@ Public Class Form1
             _CompDef.SurfaceBodies.Item(_BodyIndex).Name = Ranking & (SliceIndex)
             _CompDef.SurfaceBodies.Item(_BodyIndex).Visible = False
             If Ranking = "P" Then
-                Dim plateP As New Plate(position, False, _CompDef.SurfaceBodies.Item(_BodyIndex), False, SlicePlane)
+                Dim plateP As New Plate(position, False, _CompDef.SurfaceBodies.Item(_BodyIndex), False, SlicePlane, False, PartFeatureExtentDirectionEnum.kPositiveExtentDirection)
                 _PrimPlates.Add(plateP)
             Else
-                Dim plateS As New Plate(position, False, _CompDef.SurfaceBodies.Item(_BodyIndex), False, SlicePlane)
+                Dim plateS As New Plate(position, False, _CompDef.SurfaceBodies.Item(_BodyIndex), False, SlicePlane, False, PartFeatureExtentDirectionEnum.kPositiveExtentDirection)
                 _SeconPlates.Add(plateS)
             End If
             _BodyIndex = _BodyIndex + 1
@@ -367,10 +443,10 @@ Public Class Form1
                 End If
                 If NewPart Then
                     If Ranking = "P" Then
-                        Dim plateP As New Plate(position, False, _CompDef.SurfaceBodies.Item(_BodyIndex), False, SlicePlane)
+                        Dim plateP As New Plate(position, False, _CompDef.SurfaceBodies.Item(_BodyIndex), False, SlicePlane, False, PartFeatureExtentDirectionEnum.kPositiveExtentDirection)
                         _PrimPlates.Add(plateP)
                     Else
-                        Dim plateS As New Plate(position, False, _CompDef.SurfaceBodies.Item(_BodyIndex), False, SlicePlane)
+                        Dim plateS As New Plate(position, False, _CompDef.SurfaceBodies.Item(_BodyIndex), False, SlicePlane, False, PartFeatureExtentDirectionEnum.kPositiveExtentDirection)
                         _SeconPlates.Add(plateS)
                     End If
                     _BodyIndex = _BodyIndex + 1
@@ -406,7 +482,7 @@ Public Class Form1
             _CompDef.SurfaceBodies.Item(previndex).Visible = False
         Next
 
-        If _DebugMode Then
+        If _Colormode Then
             'Colour first Prim Body
             Dim FirstPrimBody As SurfaceBody = _PrimPlates.Item(0).PlateSurfBodyID
             Dim oFace As Face
@@ -496,10 +572,10 @@ Public Class Form1
         Dim splitDist As Double
         'Dim WorkPts As WorkPoints = _CompDef.WorkPoints
         Dim WorkPlns As WorkPlanes = _CompDef.WorkPlanes
+        Dim WorkPts As WorkPoints = _CompDef.WorkPoints
         Dim splitplane As WorkPlane
-        Dim Point1 As Point2d = _invApp.TransientGeometry.CreatePoint2d
-        Dim Point2 As Point2d = _invApp.TransientGeometry.CreatePoint2d
 
+        'Create Sketches
         Dim Centerpoint As Point2d = _invApp.TransientGeometry.CreatePoint2d
         Dim Cornerpoint As Point2d = _invApp.TransientGeometry.CreatePoint2d
 
@@ -507,70 +583,78 @@ Public Class Form1
             Case 1
                 splitDist = (LatestBody.RangeBox.MaxPoint.X - LatestBody.RangeBox.MinPoint.X) / 2 + LatestBody.RangeBox.MinPoint.X
                 splitplane = WorkPlns.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(1), splitDist)
-                Centerpoint.Y = BasePlate.PlatePosition
-                Centerpoint.X = ToolPlate.PlatePosition
-                Cornerpoint.Y = BasePlate.PlatePosition + SliceThickness.Value / 2
-                Cornerpoint.X = ToolPlate.PlatePosition + SliceThickness.Value / 2
 
             Case 2
                 splitDist = (LatestBody.RangeBox.MaxPoint.Y - LatestBody.RangeBox.MinPoint.Y) / 2 + LatestBody.RangeBox.MinPoint.Y
                 splitplane = WorkPlns.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(2), splitDist)
-                Point1.X = LatestBody.RangeBox.MinPoint.X
-                Point1.Y = LatestBody.RangeBox.MinPoint.Z
-                Point2.X = LatestBody.RangeBox.MaxPoint.X
-                Point2.Y = LatestBody.RangeBox.MaxPoint.Z
 
             Case Else
                 splitDist = (LatestBody.RangeBox.MaxPoint.Z - LatestBody.RangeBox.MinPoint.Z) / 2 + LatestBody.RangeBox.MinPoint.Z
                 splitplane = WorkPlns.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(3), splitDist)
-                Point1.X = LatestBody.RangeBox.MinPoint.X
-                Point1.Y = LatestBody.RangeBox.MinPoint.Y
-                Point2.X = LatestBody.RangeBox.MaxPoint.X
-                Point2.Y = LatestBody.RangeBox.MaxPoint.Y
+
         End Select
 
         splitplane.Visible = False
 
-        'Calculate Cut Direction
-        Dim ToolPlatecutdirection As PartFeatureExtentDirectionEnum
-        Dim BasePlatecutdirection As PartFeatureExtentDirectionEnum
-        'Debug.Print("Base Position = " & _BaseBodyCenter & " BoolBody Position = " & splitDist)
-        If splitDist <= _BaseBodyCenter Then
-            ToolPlatecutdirection = PartFeatureExtentDirectionEnum.kNegativeExtentDirection
-            BasePlatecutdirection = PartFeatureExtentDirectionEnum.kPositiveExtentDirection
-        Else
-            ToolPlatecutdirection = PartFeatureExtentDirectionEnum.kPositiveExtentDirection
-            BasePlatecutdirection = PartFeatureExtentDirectionEnum.kNegativeExtentDirection
-        End If
-
         'Delete latest body feature
         _CompDef.Features.NonParametricBaseFeatures.Item(1).Delete()
 
-        'Create cut in second plate
-        Dim LowerSketch As PlanarSketch = _CompDef.Sketches.Add(splitplane)
-        LowerSketch.SketchLines.AddAsTwoPointCenteredRectangle(Centerpoint, Cornerpoint)
-        Dim LowerProfile As Profile = LowerSketch.Profiles.AddForSolid()
-        Dim LowerExtDef As ExtrudeDefinition = _CompDef.Features.ExtrudeFeatures.CreateExtrudeDefinition(LowerProfile, PartFeatureOperationEnum.kCutOperation)
+        'Set toolplate cut direction
+        Dim basecutdir As PartFeatureExtentDirectionEnum
 
-        Dim Lowercoll As ObjectCollection = _invApp.TransientObjects.CreateObjectCollection
-        Call Lowercoll.Add(ToolPlate.PlateSurfBodyID)
-        LowerExtDef.AffectedBodies = Lowercoll
-        Call LowerExtDef.SetThroughAllExtent(ToolPlatecutdirection)
-        _CompDef.Features.ExtrudeFeatures.Add(LowerExtDef)
+        If Not ToolPlate.PlateHasCutDir Then
+            If splitDist <= _BaseBodyCenter Then
+                ToolPlate.PlateCutDir = PartFeatureExtentDirectionEnum.kNegativeExtentDirection
+                basecutdir = PartFeatureExtentDirectionEnum.kPositiveExtentDirection
+            Else
+                ToolPlate.PlateCutDir = PartFeatureExtentDirectionEnum.kPositiveExtentDirection
+                basecutdir = PartFeatureExtentDirectionEnum.kNegativeExtentDirection
+            End If
+            ToolPlate.PlateHasCutDir = True
+        Else
+            If ToolPlate.PlateCutDir = PartFeatureExtentDirectionEnum.kNegativeExtentDirection Then
+                basecutdir = PartFeatureExtentDirectionEnum.kPositiveExtentDirection
+            Else
+                basecutdir = PartFeatureExtentDirectionEnum.kNegativeExtentDirection
+            End If
+        End If
 
-        'Create cut in first plate
-        'If BasePlate.plateSecondary = False Then
-        Dim UpperSketch As PlanarSketch = _CompDef.Sketches.Add(splitplane)
-        UpperSketch.SketchLines.AddAsTwoPointCenteredRectangle(Centerpoint, Cornerpoint)
-        Dim UpperProfile As Profile = UpperSketch.Profiles.AddForSolid()
-        Dim UpperExtDef As ExtrudeDefinition = _CompDef.Features.ExtrudeFeatures.CreateExtrudeDefinition(UpperProfile, PartFeatureOperationEnum.kCutOperation)
+        'Create point
+        Dim CenterWorkPoint As WorkPoint = WorkPts.AddByThreePlanes(splitplane, ToolPlate.Plateplane, BasePlate.Plateplane)
+        CenterWorkPoint.Visible = False
 
-        Dim Uppercoll As ObjectCollection = _invApp.TransientObjects.CreateObjectCollection
-        Call Uppercoll.Add(BasePlate.PlateSurfBodyID)
-        UpperExtDef.AffectedBodies = Uppercoll
-        Call UpperExtDef.SetThroughAllExtent(BasePlatecutdirection)
-        _CompDef.Features.ExtrudeFeatures.Add(UpperExtDef)
-        'End If
+        'BaseSketch
+        Dim BaseSketch As PlanarSketch = _CompDef.Sketches.Add(splitplane)
+        BaseSketch.AddByProjectingEntity(CenterWorkPoint)
+
+        Dim newcorner As Point2d = _invApp.TransientGeometry.CreatePoint2d
+        newcorner.X = BaseSketch.SketchPoints.Item(1).Geometry.X + SliceThickness.Value / 2
+        newcorner.Y = BaseSketch.SketchPoints.Item(1).Geometry.Y + SliceThickness.Value / 2
+        BaseSketch.SketchLines.AddAsTwoPointCenteredRectangle(BaseSketch.SketchPoints.Item(1), newcorner)
+
+        'Create cut in Baseplate
+        Dim BaseProfile As Profile = BaseSketch.Profiles.AddForSolid()
+        Dim BaseExtDef As ExtrudeDefinition = _CompDef.Features.ExtrudeFeatures.CreateExtrudeDefinition(BaseProfile, PartFeatureOperationEnum.kCutOperation)
+
+        Dim Basecoll As ObjectCollection = _invApp.TransientObjects.CreateObjectCollection
+        Call Basecoll.Add(ToolPlate.PlateSurfBodyID)
+        BaseExtDef.AffectedBodies = Basecoll
+        Call BaseExtDef.SetThroughAllExtent(basecutdir)
+        _CompDef.Features.ExtrudeFeatures.Add(BaseExtDef)
+
+        'ToolSketch needed for cut corrections, not necesary yet
+        'Dim ToolSketch As PlanarSketch = _CompDef.Sketches.Add(splitplane)
+        'ToolSketch.SketchLines.AddAsTwoPointCenteredRectangle(Centerpoint, Cornerpoint)
+
+        'Create cut in Toolplate
+        Dim ToolProfile As Profile = BaseSketch.Profiles.AddForSolid()
+        Dim ToolExtDef As ExtrudeDefinition = _CompDef.Features.ExtrudeFeatures.CreateExtrudeDefinition(ToolProfile, PartFeatureOperationEnum.kCutOperation)
+
+        Dim Toolcoll As ObjectCollection = _invApp.TransientObjects.CreateObjectCollection
+        Call Toolcoll.Add(BasePlate.PlateSurfBodyID)
+        ToolExtDef.AffectedBodies = Toolcoll
+        Call ToolExtDef.SetThroughAllExtent(ToolPlate.PlateCutDir)
+        _CompDef.Features.ExtrudeFeatures.Add(ToolExtDef)
 
     End Sub
 
@@ -690,17 +774,21 @@ Public Class Plate
     Public PlateSurfBodyID As SurfaceBody
     Public PlateSecondary As Boolean
     Public Plateplane As WorkPlane
+    Public PlateHasCutDir As Boolean
+    Public PlateCutDir As PartFeatureExtentDirectionEnum
 
     Public Sub New()
 
     End Sub
 
-    Public Sub New(ByVal Position As Double, ByVal HasCuts As Boolean, ByVal SurfBodyID As SurfaceBody, ByVal Secondary As Boolean, ByVal sketchplane As WorkPlane)
+    Public Sub New(ByVal Position As Double, ByVal HasCuts As Boolean, ByVal SurfBodyID As SurfaceBody, ByVal Secondary As Boolean, ByVal sketchplane As WorkPlane, ByVal hascutdir As Boolean, ByVal cutdir As PartFeatureExtentDirectionEnum)
         PlatePosition = Position
         PlateHasCuts = HasCuts
         PlateSurfBodyID = SurfBodyID
         PlateSecondary = Secondary
         Plateplane = sketchplane
+        PlateHasCutDir = hascutdir
+        PlateCutDir = cutdir
     End Sub
 
 End Class
