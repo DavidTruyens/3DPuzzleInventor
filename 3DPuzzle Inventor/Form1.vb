@@ -2,6 +2,7 @@
 Imports System
 Imports System.Type
 Imports System.Activator
+Imports System.Threading
 Imports System.Runtime.InteropServices
 Imports Inventor
 Imports System.IO
@@ -90,6 +91,14 @@ Public Class Form1
         GenerateSlices(MainDir, body)
         makebodiesvisible()
         CreateIntersections()
+
+        MsgBox("Plate creation finished. Check the results, make changes if needed and click the DXF button!")
+
+        DXFButton.Enabled = True
+
+    End Sub
+
+    Private Sub DXFButton_Click(sender As Object, e As EventArgs) Handles DXFButton.Click
         DXFExport()
 
         Dim FileMsg As DialogResult
@@ -172,6 +181,8 @@ Public Class Form1
         baseBody = _invApp.CommandManager.Pick(SelectionFilterEnum.kPartBodyFilter, "Select the base body")
         Return baseBody
     End Function
+
+
 
     '*********** Generate Slices ************
 
