@@ -590,18 +590,28 @@ Public Class Form1
         Dim Centerpoint As Point2d = _invApp.TransientGeometry.CreatePoint2d
         Dim Cornerpoint As Point2d = _invApp.TransientGeometry.CreatePoint2d
 
+        'Platecenters
+        Dim basebodycenter As Double
+        Dim toolbodycenter As Double
+
         Select Case _SplitDir
             Case 1
                 splitDist = (LatestBody.RangeBox.MaxPoint.X - LatestBody.RangeBox.MinPoint.X) / 2 + LatestBody.RangeBox.MinPoint.X
                 splitplane = WorkPlns.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(1), splitDist)
+                basebodycenter = (BasePlate.PlateSurfBodyID.RangeBox.MaxPoint.X - BasePlate.PlateSurfBodyID.RangeBox.MinPoint.X) / 2
+                toolbodycenter = (ToolPlate.PlateSurfBodyID.RangeBox.MaxPoint.X - ToolPlate.PlateSurfBodyID.RangeBox.MinPoint.X) / 2
 
             Case 2
                 splitDist = (LatestBody.RangeBox.MaxPoint.Y - LatestBody.RangeBox.MinPoint.Y) / 2 + LatestBody.RangeBox.MinPoint.Y
                 splitplane = WorkPlns.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(2), splitDist)
+                basebodycenter = (BasePlate.PlateSurfBodyID.RangeBox.MaxPoint.Y - BasePlate.PlateSurfBodyID.RangeBox.MinPoint.Y) / 2
+                toolbodycenter = (ToolPlate.PlateSurfBodyID.RangeBox.MaxPoint.Y - ToolPlate.PlateSurfBodyID.RangeBox.MinPoint.Y) / 2
 
             Case Else
                 splitDist = (LatestBody.RangeBox.MaxPoint.Z - LatestBody.RangeBox.MinPoint.Z) / 2 + LatestBody.RangeBox.MinPoint.Z
                 splitplane = WorkPlns.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(3), splitDist)
+                basebodycenter = (BasePlate.PlateSurfBodyID.RangeBox.MaxPoint.Z - BasePlate.PlateSurfBodyID.RangeBox.MinPoint.Z) / 2
+                toolbodycenter = (ToolPlate.PlateSurfBodyID.RangeBox.MaxPoint.Z - ToolPlate.PlateSurfBodyID.RangeBox.MinPoint.Z) / 2
 
         End Select
 
@@ -612,23 +622,34 @@ Public Class Form1
 
         'Set toolplate cut direction
         Dim basecutdir As PartFeatureExtentDirectionEnum
+        Dim toolcutdir As PartFeatureExtentDirectionEnum
 
-        If Not ToolPlate.PlateHasCutDir Then
-            If splitDist <= _BaseBodyCenter Then
-                ToolPlate.PlateCutDir = PartFeatureExtentDirectionEnum.kNegativeExtentDirection
-                basecutdir = PartFeatureExtentDirectionEnum.kPositiveExtentDirection
-            Else
-                ToolPlate.PlateCutDir = PartFeatureExtentDirectionEnum.kPositiveExtentDirection
-                basecutdir = PartFeatureExtentDirectionEnum.kNegativeExtentDirection
-            End If
-            ToolPlate.PlateHasCutDir = True
-        Else
-            If ToolPlate.PlateCutDir = PartFeatureExtentDirectionEnum.kNegativeExtentDirection Then
-                basecutdir = PartFeatureExtentDirectionEnum.kPositiveExtentDirection
-            Else
-                basecutdir = PartFeatureExtentDirectionEnum.kNegativeExtentDirection
-            End If
+        If Math.Abs(_BaseBodyCenter - basebodycenter) >= Math.Abs(_BaseBodyCenter - toolbodycenter) Then
+
         End If
+
+
+
+
+        'If Not ToolPlate.PlateHasCutDir Then
+
+        If splitDist <= _BaseBodyCenter Then
+            'ToolPlate.PlateCutDir = PartFeatureExtentDirectionEnum.kNegativeExtentDirection
+            toolcutdir = PartFeatureExtentDirectionEnum.kNegativeExtentDirection
+            basecutdir = PartFeatureExtentDirectionEnum.kPositiveExtentDirection
+        Else
+            toolcutdir = PartFeatureExtentDirectionEnum.kPositiveExtentDirection
+            ' ToolPlate.PlateCutDir = PartFeatureExtentDirectionEnum.kPositiveExtentDirection
+            basecutdir = PartFeatureExtentDirectionEnum.kNegativeExtentDirection
+            End If
+        ' ToolPlate.PlateHasCutDir = True
+        'Else
+        '    If ToolPlate.PlateCutDir = PartFeatureExtentDirectionEnum.kNegativeExtentDirection Then
+        '        basecutdir = PartFeatureExtentDirectionEnum.kPositiveExtentDirection
+        '    Else
+        '        basecutdir = PartFeatureExtentDirectionEnum.kNegativeExtentDirection
+        '    End If
+        'End If
 
         'Create point
         Dim CenterWorkPoint As WorkPoint = WorkPts.AddByThreePlanes(splitplane, ToolPlate.Plateplane, BasePlate.Plateplane)
