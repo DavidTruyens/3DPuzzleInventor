@@ -75,14 +75,15 @@ Partial Class Form1
         Me.SliceThickness.Size = New System.Drawing.Size(111, 20)
         Me.SliceThickness.TabIndex = 11
         Me.SliceThickness.Value = New Decimal(New Integer() {36, 0, 0, 131072})
+        Me.SliceThickness.Visible = False
         '
         'NumberOfSlices
         '
-        Me.NumberOfSlices.Location = New System.Drawing.Point(29, 94)
+        Me.NumberOfSlices.Location = New System.Drawing.Point(29, 68)
         Me.NumberOfSlices.Name = "NumberOfSlices"
         Me.NumberOfSlices.Size = New System.Drawing.Size(111, 20)
         Me.NumberOfSlices.TabIndex = 10
-        Me.NumberOfSlices.Value = New Decimal(New Integer() {10, 0, 0, 0})
+        Me.NumberOfSlices.Value = New Decimal(New Integer() {8, 0, 0, 0})
         '
         'GetBodyButton
         '
@@ -105,18 +106,19 @@ Partial Class Form1
         '
         'DeleteButton
         '
-        Me.DeleteButton.Location = New System.Drawing.Point(29, 67)
+        Me.DeleteButton.Location = New System.Drawing.Point(29, 94)
         Me.DeleteButton.Name = "DeleteButton"
         Me.DeleteButton.Size = New System.Drawing.Size(111, 23)
         Me.DeleteButton.TabIndex = 17
         Me.DeleteButton.Text = "Delete Puzzle"
         Me.DeleteButton.UseVisualStyleBackColor = True
+        Me.DeleteButton.Visible = False
         '
         'Form1
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
-        Me.ClientSize = New System.Drawing.Size(260, 142)
+        Me.ClientSize = New System.Drawing.Size(260, 102)
         Me.Controls.Add(Me.DeleteButton)
         Me.Controls.Add(Me.DXFButton)
         Me.Controls.Add(Me.GetBodyButton)

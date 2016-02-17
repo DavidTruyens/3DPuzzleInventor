@@ -11,6 +11,7 @@ Imports System.IO
 Public Class Form1
     Public Shared _invApp As Inventor.Application
     Dim _Doc As Inventor.PartDocument
+    Dim _OrigDoc As Inventor.PartDocument
     Dim _started As Boolean = False
     Dim _SplitDir As Integer
     Dim _CompDef As PartComponentDefinition
@@ -28,6 +29,8 @@ Public Class Form1
     Dim _SeconPlates As New List(Of Plate)
     Dim _DebugMode As Boolean = False
     Dim _Colormode As Boolean = True
+    Dim _Scaled As Boolean = False
+    Dim _TargetVolume As Double = 5000
 
     Public Sub New()
 
@@ -61,8 +64,7 @@ Public Class Form1
             Return
         End If
 
-        _Doc = _invApp.ActiveDocument
-        _CompDef = _Doc.ComponentDefinition
+        _OrigDoc = _invApp.ActiveDocument
 
     End Sub
 
@@ -70,19 +72,26 @@ Public Class Form1
 
     Private Sub GetBodyButton_Click(sender As Object, e As EventArgs) Handles GetBodyButton.Click
 
-        Dim body As SurfaceBody = GetBody()
-        Dim MainDir As KeyValuePair(Of Integer, Double) = GetBoundingBoxLength(body)
+        If _OrigDoc.ComponentDefinition.ReferenceComponents.DerivedPartComponents.Count = 1 Then
+            _Doc = _OrigDoc
+        Else
+            _Doc = CreateDerived()
+        End If
+
+        _CompDef = _Doc.ComponentDefinition
 
         If Puzzletest() Then
             Dim msg1res As DialogResult
             msg1res = MsgBox("A puzzle was already created, would you like to delete it?", MsgBoxStyle.YesNo, "Puzzletest") '& MsgBoxStyle.SystemModal, "On Top"
             If msg1res = DialogResult.Yes Then
                 DeletePuzzle()
-                Exit Sub
             Else
                 Exit Sub
             End If
         End If
+
+        Dim body As SurfaceBody = GetBody()
+        Dim MainDir As KeyValuePair(Of Integer, Double) = GetBoundingBoxLength(body)
 
         _initialComp = _CompDef.SurfaceBodies.Count
         If _DebugMode Then
@@ -114,6 +123,44 @@ Public Class Form1
     Private Sub DeleteButton_Click(sender As Object, e As EventArgs) Handles DeleteButton.Click
         DeletePuzzle()
     End Sub
+
+    Private Function CreateDerived() As PartDocument
+        Dim origindoc As PartDocument = _invApp.ActiveDocument
+        origindoc.Save()
+
+        Dim origVol As Double = origindoc.ComponentDefinition.SurfaceBodies.Item(1).Volume(95)
+
+
+        ' Create a new part file to derive the selected part into 
+        'note: kPartDocumentObject is the default template
+        Dim NewPrt As PartDocument
+        NewPrt = _invApp.Documents.Add(DocumentTypeEnum.kPartDocumentObject, _invApp.FileManager.GetTemplateFile(DocumentTypeEnum.kPartDocumentObject))
+
+        'Create a derived definition for the selected part
+        Dim DerivedPrtDef As DerivedPartUniformScaleDef
+        DerivedPrtDef = NewPrt.ComponentDefinition.ReferenceComponents.DerivedPartComponents.CreateUniformScaleDef(origindoc.FullFileName)
+
+        ' set the scale to use
+        DerivedPrtDef.ScaleFactor = _TargetVolume / origVol
+
+        ' Create the derived part.
+        NewPrt.ComponentDefinition.ReferenceComponents.DerivedPartComponents.Add(DerivedPrtDef)
+
+        Dim origname As String = origindoc.FullFileName
+        Dim name As String = Replace(origname, ".ipt", "")
+        Dim newname As String = name + "-scaled.ipt"
+
+        If (System.IO.File.Exists(newname)) Then
+            Dim ToD As String = TimeOfDay.ToShortTimeString
+            ToD = Replace(ToD, ":", "-")
+            newname = Replace(newname, ".ipt", "")
+            newname = newname + " " + ToD + ".ipt"
+        End If
+
+        NewPrt.SaveAs(newname, False)
+        Return NewPrt
+
+    End Function
 
     Function Puzzletest() As Boolean
 
@@ -772,7 +819,6 @@ Public Class Form1
             _PullDir = 3
         End If
     End Sub
-
 
 End Class
 
