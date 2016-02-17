@@ -141,10 +141,11 @@ Public Class Form1
         DerivedPrtDef = NewPrt.ComponentDefinition.ReferenceComponents.DerivedPartComponents.CreateUniformScaleDef(origindoc.FullFileName)
 
         ' set the scale to use
-        DerivedPrtDef.ScaleFactor = _TargetVolume / origVol
+        DerivedPrtDef.ScaleFactor = Math.Pow(_TargetVolume / origVol, 1 / 3)
 
         ' Create the derived part.
         NewPrt.ComponentDefinition.ReferenceComponents.DerivedPartComponents.Add(DerivedPrtDef)
+        NewPrt.Views.Item(1).GoHome()
 
         Dim origname As String = origindoc.FullFileName
         Dim name As String = Replace(origname, ".ipt", "")
@@ -158,6 +159,7 @@ Public Class Form1
         End If
 
         NewPrt.SaveAs(newname, False)
+
         Return NewPrt
 
     End Function
