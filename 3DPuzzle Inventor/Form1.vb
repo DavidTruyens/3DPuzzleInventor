@@ -65,6 +65,7 @@ Public Class Form1
         End If
 
         _OrigDoc = _invApp.ActiveDocument
+        ' My.Forms.Form1.TopMost = True
 
     End Sub
 
@@ -554,6 +555,7 @@ Public Class Form1
         Dim progressprocent As Double
 
         My.Forms.ProgressForm.Show()
+        My.Forms.ProgressForm.TopMost = True
 
         For Each MPlate As Plate In _PrimPlates
             SecIndex = 0
@@ -582,6 +584,8 @@ Public Class Form1
         Next
 
         My.Forms.ProgressForm.Close()
+        My.Forms.Form1.TopMost = True
+        My.Forms.Form1.TopMost = False
     End Sub
 
     Sub CreateIntersection(BasePlate As Plate, ToolPlate As Plate)
