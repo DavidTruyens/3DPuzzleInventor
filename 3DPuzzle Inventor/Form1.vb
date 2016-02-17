@@ -77,8 +77,8 @@ Public Class Form1
             Dim msg1res As DialogResult
             msg1res = MsgBox("A puzzle was already created, would you like to delete it?", MsgBoxStyle.YesNo, "Puzzletest") '& MsgBoxStyle.SystemModal, "On Top"
             If msg1res = DialogResult.Yes Then
+                DeletePuzzle()
                 Exit Sub
-                'deletefeatures()
             Else
                 Exit Sub
             End If
@@ -111,6 +111,10 @@ Public Class Form1
         My.Forms.Form1.Close()
     End Sub
 
+    Private Sub DeleteButton_Click(sender As Object, e As EventArgs) Handles DeleteButton.Click
+        DeletePuzzle()
+    End Sub
+
     Function Puzzletest() As Boolean
 
         Dim PreviousPuzzle As Boolean = False
@@ -124,55 +128,38 @@ Public Class Form1
         Return PreviousPuzzle
     End Function
 
-    Sub deletefeatures()
-        'Does not work yet... :-(
-        Dim oBrowserNode As BrowserNode
-        Dim oBrowserPanes As BrowserPanes = _Doc.BrowserPanes
-        Dim oBrowserPane As BrowserPane = (From _pan As BrowserPane In oBrowserPanes Where _pan.TreeBrowser Select _pan).FirstOrDefault
-        Dim dodelete As Boolean = True
-        Dim oCollection As ObjectCollection = _invApp.TransientObjects.CreateObjectCollection
-
-        If dodelete Then
-            oBrowserNode = oBrowserPane.TopNode.BrowserNodes.Item(oBrowserPane.TopNode.BrowserNodes.Count - 1)
-            If oBrowserNode.BrowserNodeDefinition.Label = "START PUZZLE" Then
-                dodelete = False
-            End If
-            oBrowserNode.Delete()
-        End If
-
-    End Sub
-
-    Sub DeleteEOP()
+    Private Sub DeletePuzzle()
 
         Dim BrsPanes As BrowserPanes = _invApp.ActiveDocument.BrowserPanes
         Dim BrsPan As Inventor.BrowserPane = (From _Pan As BrowserPane In BrsPanes Where _Pan.TreeBrowser Select _Pan).FirstOrDefault
-
         Dim DoDelete As Boolean = False
         Dim ObjCollection As ObjectCollection = _invApp.TransientObjects.CreateObjectCollection()
 
-        'Dim PuzzleStart As Integer
-
-        'For Each _node As BrowserNode In BrsPan.TopNode.BrowserNodes
-        '    If _node.BrowserNodeDefinition.Label = "START PUZZLE" Then
-        '        _node.
-        '    End If
-        'Next
-
-        _CompDef.en
-
-        For Each _node As BrowserNode In BrsPan.TopNode.BrowserNodes
-            If DoDelete Then
-                Dim obj = _node.NativeObject
-                ObjCollection.Add(obj)
-            End If
-            Dim def = _node.BrowserNodeDefinition
-            Dim x = def.Label
-            If x.ToUpper().Contains("END OF PART") Then
-                DoDelete = True
+        For Each wkpln As WorkPlane In _CompDef.WorkPlanes
+            If wkpln.Name = "Start Puzzle" Then
+                wkpln.SetEndOfPart(True)
+                Exit For
             End If
         Next
 
-        _CompDef.DeleteObjects(ObjCollection)
+        Dim godelete As Boolean = True
+        Dim objCounter As Integer = 0
+
+        While godelete
+            Dim _node As BrowserNode = BrsPan.TopNode.BrowserNodes.Item(BrsPan.TopNode.BrowserNodes.Count)
+            If _node.BrowserNodeDefinition.Label = ("End of Part") Then
+                godelete = False
+            Else
+                Dim objtest = _node.NativeObject
+                ObjCollection.Add(objtest)
+                _CompDef.DeleteObjects(ObjCollection)
+                ObjCollection.Clear()
+            End If
+        End While
+
+        For Each obody As SurfaceBody In _CompDef.SurfaceBodies
+            obody.Visible = True
+        Next
     End Sub
 
     Function GetBody() As SurfaceBody
@@ -181,8 +168,6 @@ Public Class Form1
         baseBody = _invApp.CommandManager.Pick(SelectionFilterEnum.kPartBodyFilter, "Select the base body")
         Return baseBody
     End Function
-
-
 
     '*********** Generate Slices ************
 
@@ -787,6 +772,7 @@ Public Class Form1
             _PullDir = 3
         End If
     End Sub
+
 
 End Class
 
