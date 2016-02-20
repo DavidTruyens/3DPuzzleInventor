@@ -27,7 +27,7 @@ Public Class Form1
     Dim _Filelocation As String
     Dim _PrimPlates As New List(Of Plate)
     Dim _SeconPlates As New List(Of Plate)
-    Dim _DebugMode As Boolean = False
+    Dim _DebugMode As Boolean = True
     Dim _Colormode As Boolean = True
     Dim _Scaled As Boolean = False
     Dim _TargetVolume As Double = 5000
@@ -64,7 +64,6 @@ Public Class Form1
             Return
         End If
 
-        _OrigDoc = _invApp.ActiveDocument
         ' My.Forms.Form1.TopMost = True
 
     End Sub
@@ -73,45 +72,39 @@ Public Class Form1
 
     Private Sub GetBodyButton_Click(sender As Object, e As EventArgs) Handles GetBodyButton.Click
 
-        ''Check if a puzzle already exist. It should be deleted before you can continue
-        'If Puzzletest() Then
-        '    Dim msg1res As DialogResult
-        '    msg1res = MsgBox("A puzzle was already created, would you like to delete it?", MsgBoxStyle.YesNo, "Puzzletest") '& MsgBoxStyle.SystemModal, "On Top"
-        '    If msg1res = DialogResult.Yes Then
-        '        DeletePuzzle()
-        '    Else
-        '        Exit Sub
-        '    End If
-        'End If
+        _OrigDoc = _invApp.ActiveDocument
 
         'Get the actual surface body
         Dim body As SurfaceBody = GetBody()
 
         'Check if the model is already scaled. If not a derived part will be created and scaled
-        CreateDerived(body)
+        Dim startbody As SurfaceBody = CreateDerived(body)
 
-        'Calculates the longest value of the boundingbox and sets that as the direction for the primary plates
-        Dim MainDir As KeyValuePair(Of Integer, Double) = GetBoundingBoxLength(body)
+        If startbody IsNot Nothing Then
 
-        _initialComp = _CompDef.SurfaceBodies.Count
+            'Calculates the longest value of the boundingbox and sets that as the direction for the primary plates
+            Dim MainDir As KeyValuePair(Of Integer, Double) = GetBoundingBoxLength(startbody)
 
-        'only needed to see the deviation of the boundingbox with freeform models
-        If _DebugMode Then
-            boundingboxcheck(body)
+            _initialComp = _CompDef.SurfaceBodies.Count
+
+            'only needed to see the deviation of the boundingbox with freeform models
+            If _DebugMode Then
+                boundingboxcheck(startbody)
+            End If
+
+            'Createion of the slices in two directions
+            GenerateSlices(MainDir, startbody)
+
+            'Makes components visible and colors the first plates in each direction
+            makebodiesvisible()
+
+            'Creates intesections in plates. Plates who don't have an intersection will be turned invisible
+            CreateIntersections()
+
+            MsgBox("Plate creation finished. Check the results, make changes if needed and click the DXF button!")
+
+            DXFButton.Enabled = True
         End If
-
-        'Createion of the slices in two directions
-        GenerateSlices(MainDir, body)
-
-        'Makes components visible and colors the first plates in each direction
-        makebodiesvisible()
-
-        'Creates intesections in plates. Plates who don't have an intersection will be turned invisible
-        CreateIntersections()
-
-        MsgBox("Plate creation finished. Check the results, make changes if needed and click the DXF button!")
-
-        DXFButton.Enabled = True
 
     End Sub
 
@@ -132,9 +125,30 @@ Public Class Form1
         DeletePuzzle()
     End Sub
 
-    Private Sub CreateDerived(body As SurfaceBody)
+    Private Function GetBody() As SurfaceBody
+        ' Have the bodies selected. 
+        Dim initialBody As SurfaceBody
+        initialBody = _invApp.CommandManager.Pick(SelectionFilterEnum.kPartBodyFilter, "Select the base body")
+        Return initialBody
+    End Function
+
+    Private Function CreateDerived(body As SurfaceBody) As SurfaceBody
+
         If _OrigDoc.ComponentDefinition.ReferenceComponents.DerivedPartComponents.Count = 1 Then
             _Doc = _OrigDoc
+            _CompDef = _Doc.ComponentDefinition
+
+            'Check if a puzzle already exist. It should be deleted before you can continue
+            If Puzzletest() Then
+                Dim msg1res As DialogResult
+                msg1res = MsgBox("A puzzle was already created, would you like to delete it?", MsgBoxStyle.YesNo, "Puzzletest") '& MsgBoxStyle.SystemModal, "On Top"
+                If msg1res = DialogResult.Yes Then
+                    DeletePuzzle()
+                Else
+                    Return Nothing
+                    Exit Function
+                End If
+            End If
 
         Else
             Dim origindoc As PartDocument = _invApp.ActiveDocument
@@ -182,72 +196,17 @@ Public Class Form1
 
             NewPrt.SaveAs(newname, False)
             _Doc = NewPrt
-
+            _CompDef = _Doc.ComponentDefinition
         End If
 
-        _CompDef = _Doc.ComponentDefinition
-    End Sub
+        Return _CompDef.SurfaceBodies.Item(1)
 
-    Function Puzzletest() As Boolean
-
-        Dim PreviousPuzzle As Boolean = False
-        Dim Testplane As WorkPlane
-        For Each Testplane In _CompDef.WorkPlanes
-            If (Testplane.Name = "Start Puzzle") Then
-                PreviousPuzzle = True
-                Exit For
-            End If
-        Next
-        Return PreviousPuzzle
     End Function
 
-    Private Sub DeletePuzzle()
-
-        Dim BrsPanes As BrowserPanes = _invApp.ActiveDocument.BrowserPanes
-        Dim BrsPan As Inventor.BrowserPane = (From _Pan As BrowserPane In BrsPanes Where _Pan.TreeBrowser Select _Pan).FirstOrDefault
-        Dim DoDelete As Boolean = False
-        Dim ObjCollection As ObjectCollection = _invApp.TransientObjects.CreateObjectCollection()
-
-        For Each wkpln As WorkPlane In _CompDef.WorkPlanes
-            If wkpln.Name = "Start Puzzle" Then
-                wkpln.SetEndOfPart(True)
-                Exit For
-            End If
-        Next
-
-        Dim godelete As Boolean = True
-        Dim objCounter As Integer = 0
-
-        While godelete
-            Dim _node As BrowserNode = BrsPan.TopNode.BrowserNodes.Item(BrsPan.TopNode.BrowserNodes.Count)
-            If _node.BrowserNodeDefinition.Label = ("End of Part") Then
-                godelete = False
-            Else
-                Dim objtest = _node.NativeObject
-                ObjCollection.Add(objtest)
-                _CompDef.DeleteObjects(ObjCollection)
-                ObjCollection.Clear()
-            End If
-        End While
-
-        For Each obody As SurfaceBody In _CompDef.SurfaceBodies
-            obody.Visible = True
-        Next
-    End Sub
-
-    Function GetBody() As SurfaceBody
-        ' Have the bodies selected. 
-        Dim baseBody As SurfaceBody
-        baseBody = _invApp.CommandManager.Pick(SelectionFilterEnum.kPartBodyFilter, "Select the base body")
-        Return baseBody
-    End Function
-
-    '*********** Generate Slices ************
-
-    Function GetBoundingBoxLength(basebody As SurfaceBody) As KeyValuePair(Of Integer, Double)
+    Private Function GetBoundingBoxLength(boxbody As SurfaceBody) As KeyValuePair(Of Integer, Double)
         Dim BoundingBox As Box
         Dim MainDir As Integer
-        BoundingBox = basebody.RangeBox
+        BoundingBox = boxbody.RangeBox
 
         Dim Xlength As Double
         Xlength = BoundingBox.MaxPoint.X - BoundingBox.MinPoint.X
@@ -297,7 +256,56 @@ Public Class Form1
 
     End Function
 
-    Sub GenerateSlices(MainDir As KeyValuePair(Of Integer, Double), baseBody As SurfaceBody)
+    Private Function Puzzletest() As Boolean
+
+        Dim PreviousPuzzle As Boolean = False
+        Dim Testplane As WorkPlane
+        For Each Testplane In _CompDef.WorkPlanes
+            If (Testplane.Name = "Start Puzzle") Then
+                PreviousPuzzle = True
+                Exit For
+            End If
+        Next
+        Return PreviousPuzzle
+    End Function
+
+    Private Sub DeletePuzzle()
+
+        Dim BrsPanes As BrowserPanes = _invApp.ActiveDocument.BrowserPanes
+        Dim BrsPan As Inventor.BrowserPane = (From _Pan As BrowserPane In BrsPanes Where _Pan.TreeBrowser Select _Pan).FirstOrDefault
+        Dim DoDelete As Boolean = False
+        Dim ObjCollection As ObjectCollection = _invApp.TransientObjects.CreateObjectCollection()
+
+        For Each wkpln As WorkPlane In _CompDef.WorkPlanes
+            If wkpln.Name = "Start Puzzle" Then
+                wkpln.SetEndOfPart(True)
+                Exit For
+            End If
+        Next
+
+        Dim godelete As Boolean = True
+        Dim objCounter As Integer = 0
+
+        While godelete
+            Dim _node As BrowserNode = BrsPan.TopNode.BrowserNodes.Item(BrsPan.TopNode.BrowserNodes.Count)
+            If _node.BrowserNodeDefinition.Label = ("End of Part") Then
+                godelete = False
+            Else
+                Dim objtest = _node.NativeObject
+                ObjCollection.Add(objtest)
+                _CompDef.DeleteObjects(ObjCollection)
+                ObjCollection.Clear()
+            End If
+        End While
+
+        For Each obody As SurfaceBody In _CompDef.SurfaceBodies
+            obody.Visible = True
+        Next
+    End Sub
+
+    '*********** Generate Slices ************
+
+    Private Sub GenerateSlices(MainDir As KeyValuePair(Of Integer, Double), baseBody As SurfaceBody)
         Dim mainposition As Double
         Dim secondarypostion As Double
 
@@ -367,7 +375,7 @@ Public Class Form1
 
     End Sub
 
-    Sub boundingboxcheck(basebody As SurfaceBody)
+    Private Sub boundingboxcheck(basebody As SurfaceBody)
 
         Dim boundingboxXmin As WorkPlane
         Dim boundingboxXmax As WorkPlane
@@ -401,7 +409,7 @@ Public Class Form1
 
     End Sub
 
-    Function SecondaryStart(BaseBody As SurfaceBody, planenumber As Integer) As Double
+    Private Function SecondaryStart(BaseBody As SurfaceBody, planenumber As Integer) As Double
 
         Dim width As Double
         Dim secondaryOffset As Double
@@ -434,7 +442,7 @@ Public Class Form1
         Return secondarypostion
     End Function
 
-    Sub CreateSlice(SlicePlane As WorkPlane, Body As SurfaceBody, Ranking As String, SliceIndex As Integer, position As Double)
+    Private Sub CreateSlice(SlicePlane As WorkPlane, Body As SurfaceBody, Ranking As String, SliceIndex As Integer, position As Double)
         Dim NewPart As Boolean = True
         Dim contoursketch As PlanarSketch = _CompDef.Sketches.Add(SlicePlane)
         Dim ExtrudeThickness = CDbl(SliceThickness.Value)
@@ -544,7 +552,7 @@ Public Class Form1
 
     End Sub
 
-    Sub makebodiesvisible()
+    Private Sub makebodiesvisible()
 
         For Each Pplate As Plate In _PrimPlates
             Dim surf As Inventor.SurfaceBody = Pplate.PlateSurfBodyID
@@ -581,7 +589,7 @@ Public Class Form1
 
     '*********** Create Intersections ********
 
-    Sub CreateIntersections()
+    Private Sub CreateIntersections()
         Dim PrimIndex As Integer = 0
         Dim SecIndex As Integer = 0
         Dim progressval As Integer = 0
@@ -621,7 +629,7 @@ Public Class Form1
         My.Forms.Form1.TopMost = False
     End Sub
 
-    Sub CreateIntersection(BasePlate As Plate, ToolPlate As Plate)
+    Private Sub CreateIntersection(BasePlate As Plate, ToolPlate As Plate)
 
         Dim TransBody As TransientBRep = _invApp.TransientBRep
         Dim transGeo As TransientGeometry = _invApp.TransientGeometry
@@ -764,14 +772,14 @@ Public Class Form1
 
     '************* DXF Export ************
 
-    Sub DXFExport()
+    Private Sub DXFExport()
 
         CreateFolder()
         CreateSMAssy()
 
     End Sub
 
-    Sub CreateFolder()
+    Private Sub CreateFolder()
 
         _invApp.ActiveDocument.Save()
 
@@ -820,11 +828,20 @@ Public Class Form1
         assy.SaveAs(assyname, False)
 
         Dim i As Integer = 0
+        Dim progressval As Integer = 0
+        Dim progressprocent As Double
+
+        My.Forms.ProgressForm.Show()
+        My.Forms.ProgressForm.TopMost = True
 
         For i = 1 To _CompDef.SurfaceBodies.Count
 
+            progressprocent = i / _CompDef.SurfaceBodies.Count
+            My.Forms.ProgressForm.ProgressBar1.Value = CInt(progressprocent * My.Forms.ProgressForm.ProgressBar1.Maximum)
+            Debug.Print(progressprocent)
+
             If _CompDef.SurfaceBodies.Item(i).Visible = True Then
-                _invApp.ScreenUpdating = False
+                ' _invApp.ScreenUpdating = False
                 Dim NewPrt As PartDocument
                 NewPrt = _invApp.Documents.Add(DocumentTypeEnum.kPartDocumentObject,
                          _invApp.FileManager.GetTemplateFile(DocumentTypeEnum.kPartDocumentObject,
@@ -867,10 +884,11 @@ Public Class Form1
 
                 assy.ComponentDefinition.Occurrences.Add(FFName, oMatrix)
                 assy.ComponentDefinition.Occurrences.Item(assy.ComponentDefinition.Occurrences.Count).Grounded = True
-                _invApp.ScreenUpdating = True
+                ' _invApp.ScreenUpdating = True
             End If
         Next
 
+        My.Forms.ProgressForm.Close()
         assy.Save()
 
     End Sub

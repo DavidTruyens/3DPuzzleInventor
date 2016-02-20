@@ -101,7 +101,7 @@ Partial Class Form1
         Me.DXFButton.Name = "DXFButton"
         Me.DXFButton.Size = New System.Drawing.Size(111, 23)
         Me.DXFButton.TabIndex = 16
-        Me.DXFButton.Text = "Generate DXF"
+        Me.DXFButton.Text = "Create Assembly"
         Me.DXFButton.UseVisualStyleBackColor = True
         '
         'DeleteButton
