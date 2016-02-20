@@ -73,26 +73,25 @@ Public Class Form1
 
     Private Sub GetBodyButton_Click(sender As Object, e As EventArgs) Handles GetBodyButton.Click
 
-        'Check if the model is already scaled. If not a derived part will be created and scaled
-        CreateDerived()
-
-        'Check if a puzzle already exist. It should be deleted before you can continue
-        If Puzzletest() Then
-            Dim msg1res As DialogResult
-            msg1res = MsgBox("A puzzle was already created, would you like to delete it?", MsgBoxStyle.YesNo, "Puzzletest") '& MsgBoxStyle.SystemModal, "On Top"
-            If msg1res = DialogResult.Yes Then
-                DeletePuzzle()
-            Else
-                Exit Sub
-            End If
-        End If
+        ''Check if a puzzle already exist. It should be deleted before you can continue
+        'If Puzzletest() Then
+        '    Dim msg1res As DialogResult
+        '    msg1res = MsgBox("A puzzle was already created, would you like to delete it?", MsgBoxStyle.YesNo, "Puzzletest") '& MsgBoxStyle.SystemModal, "On Top"
+        '    If msg1res = DialogResult.Yes Then
+        '        DeletePuzzle()
+        '    Else
+        '        Exit Sub
+        '    End If
+        'End If
 
         'Get the actual surface body
         Dim body As SurfaceBody = GetBody()
 
+        'Check if the model is already scaled. If not a derived part will be created and scaled
+        CreateDerived(body)
+
         'Calculates the longest value of the boundingbox and sets that as the direction for the primary plates
         Dim MainDir As KeyValuePair(Of Integer, Double) = GetBoundingBoxLength(body)
-
 
         _initialComp = _CompDef.SurfaceBodies.Count
 
@@ -133,7 +132,7 @@ Public Class Form1
         DeletePuzzle()
     End Sub
 
-    Private Sub CreateDerived()
+    Private Sub CreateDerived(body As SurfaceBody)
         If _OrigDoc.ComponentDefinition.ReferenceComponents.DerivedPartComponents.Count = 1 Then
             _Doc = _OrigDoc
 
@@ -141,8 +140,7 @@ Public Class Form1
             Dim origindoc As PartDocument = _invApp.ActiveDocument
             origindoc.Save()
 
-            Dim origVol As Double = origindoc.ComponentDefinition.SurfaceBodies.Item(1).Volume(95)
-
+            Dim origVol As Double = body.Volume(95)
 
             ' Create a new part file to derive the selected part into 
             'note: kPartDocumentObject is the default template
@@ -152,6 +150,17 @@ Public Class Form1
             'Create a derived definition for the selected part
             Dim DerivedPrtDef As DerivedPartUniformScaleDef
             DerivedPrtDef = NewPrt.ComponentDefinition.ReferenceComponents.DerivedPartComponents.CreateUniformScaleDef(origindoc.FullFileName)
+
+            Call DerivedPrtDef.ExcludeAll()
+
+            Dim i As Integer = 0
+            For Each surfding As SurfaceBody In _OrigDoc.ComponentDefinition.SurfaceBodies
+                i = i + 1
+                If surfding.Name = body.Name Then
+                    Exit For
+                End If
+            Next
+            DerivedPrtDef.Solids.Item(i).IncludeEntity = True
 
             ' set the scale to use
             DerivedPrtDef.ScaleFactor = Math.Pow(_TargetVolume / origVol, 1 / 3)
@@ -758,35 +767,7 @@ Public Class Form1
     Sub DXFExport()
 
         CreateFolder()
-        For Each PPlate In _PrimPlates
-            If PPlate.PlateHasCuts Then
-                HideAllButCurrent(PPlate)
-                CreateDXF(PPlate)
-            End If
-        Next
-
-        For Each SPlate In _SeconPlates
-            If SPlate.PlateHasCuts Then
-                HideAllButCurrent(SPlate)
-                CreateDXF(SPlate)
-            End If
-        Next
-
-        For Each MPlate In _PrimPlates
-            If MPlate.PlateHasCuts Then
-                MPlate.PlateSurfBodyID.Visible = True
-            Else
-                MPlate.PlateSurfBodyID.Visible = False
-            End If
-        Next
-
-        For Each Splate In _SeconPlates
-            If Splate.PlateHasCuts Then
-                Splate.PlateSurfBodyID.Visible = True
-            Else
-                Splate.PlateSurfBodyID.Visible = False
-            End If
-        Next
+        CreateSMAssy()
 
     End Sub
 
@@ -804,34 +785,94 @@ Public Class Form1
             Dim ToD As String = TimeOfDay.ToShortTimeString
             ToD = Replace(ToD, ":", "-")
             _Filelocation = _Filelocation + " " + ToD
-            System.IO.Directory.CreateDirectory(_Filelocation)
-        Else
-            System.IO.Directory.CreateDirectory(_Filelocation)
+
+        End If
+        System.IO.Directory.CreateDirectory(_Filelocation)
+    End Sub
+
+    Private Sub CreateSMAssy()
+
+        'Create New assembly
+        Dim assy As AssemblyDocument = _invApp.Documents.Add(DocumentTypeEnum.kAssemblyDocumentObject, "", True)
+
+        ' Set a reference to the transient geometry object.
+        Dim oTG As TransientGeometry
+        oTG = _invApp.TransientGeometry
+
+        ' Create a matrix.  A new matrix is initialized with an identity matrix.
+        Dim oMatrix As Matrix
+        oMatrix = oTG.CreateMatrix
+
+        Call oMatrix.SetTranslation(oTG.CreateVector(0, 0, 0), False)
+
+        Dim origname As String = _Doc.FullFileName
+        Dim name As String = Replace(origname, ".ipt", "")
+        Dim path As String = IO.Path.GetDirectoryName(_Doc.FullFileName)
+
+        Dim assyname As String = name + ".iam"
+
+        If (IO.File.Exists(assyname)) Then
+            Dim ToD As String = TimeOfDay.ToShortTimeString
+            ToD = Replace(ToD, ":", "-")
+            assyname = name + ToD + ".iam"
         End If
 
-    End Sub
+        assy.SaveAs(assyname, False)
 
-    Private Sub HideAllButCurrent(toolbody As Plate)
-        For Each body As SurfaceBody In _CompDef.SurfaceBodies
-            If body.Name = toolbody.PlateSurfBodyID.Name Then
-                body.Visible = True
-            Else
-                body.Visible = False
+        Dim i As Integer = 0
+
+        For i = 1 To _CompDef.SurfaceBodies.Count
+
+            If _CompDef.SurfaceBodies.Item(i).Visible = True Then
+                _invApp.ScreenUpdating = False
+                Dim NewPrt As PartDocument
+                NewPrt = _invApp.Documents.Add(DocumentTypeEnum.kPartDocumentObject,
+                         _invApp.FileManager.GetTemplateFile(DocumentTypeEnum.kPartDocumentObject,
+                                                             SystemOfMeasureEnum.kDefaultSystemOfMeasure,
+                                                             DraftingStandardEnum.kDefault_DraftingStandard,
+                                                             "{9C464203-9BAE-11D3-8BAD-0060B0CE6BB4}"), False)
+
+                'Create a derived definition for the selected part
+                Dim DerivedPrtDef As DerivedPartUniformScaleDef
+                DerivedPrtDef = NewPrt.ComponentDefinition.ReferenceComponents.DerivedPartComponents.CreateUniformScaleDef(_Doc.FullFileName)
+                Call DerivedPrtDef.ExcludeAll()
+                DerivedPrtDef.Solids.Item(i).IncludeEntity = True
+
+                ' Create the derived part.
+                NewPrt.ComponentDefinition.ReferenceComponents.DerivedPartComponents.Add(DerivedPrtDef)
+
+                Dim SMCompdef As SheetMetalComponentDefinition = NewPrt.ComponentDefinition
+                SMCompdef.UseSheetMetalStyleThickness = False
+                SMCompdef.Thickness.Value = SliceThickness.Value
+
+                Dim newname As String = _Filelocation + "\" + _CompDef.SurfaceBodies.Item(i).Name + ".ipt"
+
+                If (IO.File.Exists(newname)) Then
+                    Dim ToD As String = TimeOfDay.ToShortTimeString
+                    ToD = Replace(ToD, ":", "-")
+                    newname = _Filelocation + "\" + _CompDef.SurfaceBodies.Item(i).Name + ToD + ".ipt"
+                End If
+
+                NewPrt.SaveAs(newname, False)
+
+                SMCompdef.Unfold()
+
+                Dim DXFName As String = Replace(newname, ".ipt", ".dxf")
+                Dim oDataIO As DataIO = NewPrt.ComponentDefinition.DataIO
+                oDataIO.WriteDataToFile("FLAT PATTERN DXF?AcadVersion=R12", DXFName)
+
+                NewPrt.Save()
+                Dim FFName As String = NewPrt.FullFileName
+                NewPrt.Close()
+
+                assy.ComponentDefinition.Occurrences.Add(FFName, oMatrix)
+                assy.ComponentDefinition.Occurrences.Item(assy.ComponentDefinition.Occurrences.Count).Grounded = True
+                _invApp.ScreenUpdating = True
             End If
         Next
-    End Sub
 
-    Private Sub CreateDXF(toolbody As Plate)
-        'create sketch with cut edges
-        Dim contoursketch As PlanarSketch = _CompDef.Sketches.Add(toolbody.Plateplane)
-        contoursketch.ProjectedCuts.Add()
+        assy.Save()
 
-        'export sketch to dxf
-        Call contoursketch.DataIO.WriteDataToFile("DXF", _Filelocation & "\" & toolbody.PlateSurfBodyID.Name & ".dxf")
-
-        'rename and hide sketch
-        contoursketch.Name = "DXF-" & toolbody.PlateSurfBodyID.Name
-        contoursketch.Visible = False
     End Sub
 
     '************* Radio toggles *********
