@@ -74,7 +74,7 @@ Partial Class Form1
         Me.SliceThickness.Name = "SliceThickness"
         Me.SliceThickness.Size = New System.Drawing.Size(111, 20)
         Me.SliceThickness.TabIndex = 11
-        Me.SliceThickness.Value = New Decimal(New Integer() {36, 0, 0, 131072})
+        Me.SliceThickness.Value = New Decimal(New Integer() {4, 0, 0, 65536})
         Me.SliceThickness.Visible = False
         '
         'NumberOfSlices
@@ -118,7 +118,7 @@ Partial Class Form1
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
-        Me.ClientSize = New System.Drawing.Size(260, 102)
+        Me.ClientSize = New System.Drawing.Size(260, 152)
         Me.Controls.Add(Me.DeleteButton)
         Me.Controls.Add(Me.DXFButton)
         Me.Controls.Add(Me.GetBodyButton)

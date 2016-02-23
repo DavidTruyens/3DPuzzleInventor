@@ -27,10 +27,13 @@ Public Class Form1
     Dim _Filelocation As String
     Dim _PrimPlates As New List(Of Plate)
     Dim _SeconPlates As New List(Of Plate)
-    Dim _DebugMode As Boolean = True
+    Dim _DebugMode As Boolean = False
     Dim _Colormode As Boolean = True
     Dim _Scaled As Boolean = False
     Dim _TargetVolume As Double = 5000
+    Dim _ToolDiam As Double = 0.02
+    Dim _Toolcomp As Boolean = True
+    Dim _Nest As Boolean = True
 
     Public Sub New()
 
@@ -647,12 +650,6 @@ Public Class Form1
             transdef = _CompDef.Features.NonParametricBaseFeatures.CreateDefinition()
             Call objs.Add(transBase)
 
-
-            ' transdef.BRepEntities = objs
-            ' transdef.OutputType = BaseFeatureOutputTypeEnum.kSolidOutputType
-
-            ' _CompDef.Features.NonParametricBaseFeatures.AddByDefinition(transdef)
-
         Catch ex As Exception
             Exit Sub
         End Try
@@ -664,13 +661,10 @@ Public Class Form1
         Dim basecutdir As PartFeatureExtentDirectionEnum
         Dim toolcutdir As PartFeatureExtentDirectionEnum
 
-
         For Each transbool As FaceShell In transBase.FaceShells
 
             'Create plane
-            'Dim LatestBody As SurfaceBody = _CompDef.SurfaceBodies.Item(_CompDef.SurfaceBodies.Count)
             Dim splitDist As Double
-            'Dim WorkPts As WorkPoints = _CompDef.WorkPoints
             Dim WorkPlns As WorkPlanes = _CompDef.WorkPlanes
             Dim WorkPts As WorkPoints = _CompDef.WorkPoints
             Dim splitplane As WorkPlane
@@ -678,6 +672,7 @@ Public Class Form1
             'Create Sketches
             Dim Centerpoint As Point2d = _invApp.TransientGeometry.CreatePoint2d
             Dim Cornerpoint As Point2d = _invApp.TransientGeometry.CreatePoint2d
+            Dim Conerpoint2 As Point2d = _invApp.TransientGeometry.CreatePoint2d
 
             'Platecenters
             Dim basebodycenter As Double
@@ -686,28 +681,55 @@ Public Class Form1
             'Extrude length
             Dim extrudelength As Double
 
+            'Compenations
+            Dim XBaseComp As Double
+            Dim YBaseComp As Double
+            Dim XToolComp As Double
+            Dim YToolComp As Double
+
             Select Case _SplitDir
                 Case 1
+                    'plane creation and extrude distance
                     splitDist = (transbool.RangeBox.MaxPoint.X - transbool.RangeBox.MinPoint.X) / 2 + transbool.RangeBox.MinPoint.X
                     splitplane = WorkPlns.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(1), splitDist)
                     basebodycenter = BasePlate.PlateSurfBodyID.RangeBox.MinPoint.X + (BasePlate.PlateSurfBodyID.RangeBox.MaxPoint.X - BasePlate.PlateSurfBodyID.RangeBox.MinPoint.X) / 2
                     toolbodycenter = ToolPlate.PlateSurfBodyID.RangeBox.MinPoint.X + (ToolPlate.PlateSurfBodyID.RangeBox.MaxPoint.X - ToolPlate.PlateSurfBodyID.RangeBox.MinPoint.X) / 2
                     extrudelength = (transbool.RangeBox.MaxPoint.X - transbool.RangeBox.MinPoint.X) / 2 + SliceThickness.Value * 4
+
+                    'compensation calculation
+                    XBaseComp = _ToolDiam / 2
+                    YBaseComp = 0
+                    XToolComp = 0
+                    YToolComp = _ToolDiam / 2
+
                 Case 2
                     splitDist = (transbool.RangeBox.MaxPoint.Y - transbool.RangeBox.MinPoint.Y) / 2 + transbool.RangeBox.MinPoint.Y
                     splitplane = WorkPlns.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(2), splitDist)
                     basebodycenter = BasePlate.PlateSurfBodyID.RangeBox.MinPoint.Y + (BasePlate.PlateSurfBodyID.RangeBox.MaxPoint.Y - BasePlate.PlateSurfBodyID.RangeBox.MinPoint.Y) / 2
                     toolbodycenter = ToolPlate.PlateSurfBodyID.RangeBox.MinPoint.Y + (ToolPlate.PlateSurfBodyID.RangeBox.MaxPoint.Y - ToolPlate.PlateSurfBodyID.RangeBox.MinPoint.Y) / 2
                     extrudelength = (transbool.RangeBox.MaxPoint.Y - transbool.RangeBox.MinPoint.Y) / 2 + SliceThickness.Value * 4
+
+                    'compensation calculation
+                    XBaseComp = _ToolDiam / 2
+                    YBaseComp = 0
+                    XToolComp = 0
+                    YToolComp = _ToolDiam / 2
                 Case Else
                     splitDist = (transbool.RangeBox.MaxPoint.Z - transbool.RangeBox.MinPoint.Z) / 2 + transbool.RangeBox.MinPoint.Z
                     splitplane = WorkPlns.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(3), splitDist)
                     basebodycenter = BasePlate.PlateSurfBodyID.RangeBox.MinPoint.Z + (BasePlate.PlateSurfBodyID.RangeBox.MaxPoint.Z - BasePlate.PlateSurfBodyID.RangeBox.MinPoint.Z) / 2
                     toolbodycenter = ToolPlate.PlateSurfBodyID.RangeBox.MinPoint.Z + (ToolPlate.PlateSurfBodyID.RangeBox.MaxPoint.Z - ToolPlate.PlateSurfBodyID.RangeBox.MinPoint.Z) / 2
                     extrudelength = (transbool.RangeBox.MaxPoint.Z - transbool.RangeBox.MinPoint.Z) / 2 + SliceThickness.Value * 4
+
+                    'compensation calculation
+                    XBaseComp = 0
+                    YBaseComp = _ToolDiam / 2
+                    XToolComp = _ToolDiam / 2
+                    YToolComp = 0
             End Select
 
             splitplane.Visible = False
+
             If Not hasdirection Then
                 If Math.Abs(_BaseBodyCenter - basebodycenter) + 0.05 >= Math.Abs(_BaseBodyCenter - toolbodycenter) Then
                     If basebodycenter + 0.05 - _BaseBodyCenter >= 0 Then
@@ -727,47 +749,85 @@ Public Class Form1
                     End If
                 End If
             End If
-
-
+            
             'Create point
             Dim CenterWorkPoint As WorkPoint = WorkPts.AddByThreePlanes(splitplane, ToolPlate.Plateplane, BasePlate.Plateplane)
             CenterWorkPoint.Visible = False
 
-            'BaseSketch
-            Dim BaseSketch As PlanarSketch = _CompDef.Sketches.Add(splitplane)
-            BaseSketch.AddByProjectingEntity(CenterWorkPoint)
+            'Toolcompensation will create two different skechtes where the tooldiam is reduced. Otherwise the exact cutout will be calculated
+            If _Toolcomp Then
+                'BaseSketch
+                Dim BaseSketch As PlanarSketch = _CompDef.Sketches.Add(splitplane)
+                BaseSketch.AddByProjectingEntity(CenterWorkPoint)
 
-            Dim newcorner As Point2d = _invApp.TransientGeometry.CreatePoint2d
-            newcorner.X = BaseSketch.SketchPoints.Item(1).Geometry.X + SliceThickness.Value / 2
-            newcorner.Y = BaseSketch.SketchPoints.Item(1).Geometry.Y + SliceThickness.Value / 2
-            BaseSketch.SketchLines.AddAsTwoPointCenteredRectangle(BaseSketch.SketchPoints.Item(1), newcorner)
+                Dim basecorner As Point2d = _invApp.TransientGeometry.CreatePoint2d
+                basecorner.X = BaseSketch.SketchPoints.Item(1).Geometry.X + SliceThickness.Value / 2 - XBaseComp
+                basecorner.Y = BaseSketch.SketchPoints.Item(1).Geometry.Y + SliceThickness.Value / 2 - YBaseComp
+                BaseSketch.SketchLines.AddAsTwoPointCenteredRectangle(BaseSketch.SketchPoints.Item(1), basecorner)
 
-            'Create cut in Baseplate
-            Dim BaseProfile As Profile = BaseSketch.Profiles.AddForSolid()
-            Dim BaseExtDef As ExtrudeDefinition = _CompDef.Features.ExtrudeFeatures.CreateExtrudeDefinition(BaseProfile, PartFeatureOperationEnum.kCutOperation)
+                'Create cut in Baseplate
+                Dim BaseProfile As Profile = BaseSketch.Profiles.AddForSolid()
+                Dim BaseExtDef As ExtrudeDefinition = _CompDef.Features.ExtrudeFeatures.CreateExtrudeDefinition(BaseProfile, PartFeatureOperationEnum.kCutOperation)
 
-            Dim Basecoll As ObjectCollection = _invApp.TransientObjects.CreateObjectCollection
-            Call Basecoll.Add(ToolPlate.PlateSurfBodyID)
-            BaseExtDef.AffectedBodies = Basecoll
-            Call BaseExtDef.SetDistanceExtent(extrudelength, basecutdir)
-            _CompDef.Features.ExtrudeFeatures.Add(BaseExtDef)
+                Dim Basecoll As ObjectCollection = _invApp.TransientObjects.CreateObjectCollection
+                Call Basecoll.Add(BasePlate.PlateSurfBodyID)
+                BaseExtDef.AffectedBodies = Basecoll
+                Call BaseExtDef.SetDistanceExtent(extrudelength, basecutdir)
+                _CompDef.Features.ExtrudeFeatures.Add(BaseExtDef)
 
-            'ToolSketch needed for cut corrections, not necesary yet
-            'Dim ToolSketch As PlanarSketch = _CompDef.Sketches.Add(splitplane)
-            'ToolSketch.SketchLines.AddAsTwoPointCenteredRectangle(Centerpoint, Cornerpoint)
+                'ToolSketch
+                Dim ToolSketch As PlanarSketch = _CompDef.Sketches.Add(splitplane)
+                ToolSketch.AddByProjectingEntity(CenterWorkPoint)
 
-            'Create cut in Toolplate
-            Dim ToolProfile As Profile = BaseSketch.Profiles.AddForSolid()
-            Dim ToolExtDef As ExtrudeDefinition = _CompDef.Features.ExtrudeFeatures.CreateExtrudeDefinition(ToolProfile, PartFeatureOperationEnum.kCutOperation)
+                Dim toolcorner As Point2d = _invApp.TransientGeometry.CreatePoint2d
+                toolcorner.X = ToolSketch.SketchPoints.Item(1).Geometry.X + SliceThickness.Value / 2 - XToolComp
+                toolcorner.Y = ToolSketch.SketchPoints.Item(1).Geometry.Y + SliceThickness.Value / 2 - YToolComp
+                ToolSketch.SketchLines.AddAsTwoPointCenteredRectangle(ToolSketch.SketchPoints.Item(1), toolcorner)
 
-            Dim Toolcoll As ObjectCollection = _invApp.TransientObjects.CreateObjectCollection
-            Call Toolcoll.Add(BasePlate.PlateSurfBodyID)
-            ToolExtDef.AffectedBodies = Toolcoll
+                'Create cut in Toolplate
+                Dim ToolProfile As Profile = ToolSketch.Profiles.AddForSolid()
+                Dim ToolExtDef As ExtrudeDefinition = _CompDef.Features.ExtrudeFeatures.CreateExtrudeDefinition(ToolProfile, PartFeatureOperationEnum.kCutOperation)
 
-            Call ToolExtDef.SetDistanceExtent(extrudelength, toolcutdir)
-            'Call ToolExtDef.SetThroughAllExtent(toolcutdir)
-            _CompDef.Features.ExtrudeFeatures.Add(ToolExtDef)
+                Dim Toolcoll As ObjectCollection = _invApp.TransientObjects.CreateObjectCollection
+                Call Toolcoll.Add(ToolPlate.PlateSurfBodyID)
+                ToolExtDef.AffectedBodies = Toolcoll
+                Call ToolExtDef.SetDistanceExtent(extrudelength, toolcutdir)
+                _CompDef.Features.ExtrudeFeatures.Add(ToolExtDef)
+
+            Else
+                'BaseSketch
+                Dim BaseSketch As PlanarSketch = _CompDef.Sketches.Add(splitplane)
+                BaseSketch.AddByProjectingEntity(CenterWorkPoint)
+
+                Dim newcorner As Point2d = _invApp.TransientGeometry.CreatePoint2d
+                newcorner.X = BaseSketch.SketchPoints.Item(1).Geometry.X + SliceThickness.Value / 2
+                newcorner.Y = BaseSketch.SketchPoints.Item(1).Geometry.Y + SliceThickness.Value / 2
+                BaseSketch.SketchLines.AddAsTwoPointCenteredRectangle(BaseSketch.SketchPoints.Item(1), newcorner)
+
+                'Create cut in Baseplate
+                Dim BaseProfile As Profile = BaseSketch.Profiles.AddForSolid()
+                Dim BaseExtDef As ExtrudeDefinition = _CompDef.Features.ExtrudeFeatures.CreateExtrudeDefinition(BaseProfile, PartFeatureOperationEnum.kCutOperation)
+
+                Dim Basecoll As ObjectCollection = _invApp.TransientObjects.CreateObjectCollection
+                Call Basecoll.Add(ToolPlate.PlateSurfBodyID)
+                BaseExtDef.AffectedBodies = Basecoll
+                Call BaseExtDef.SetDistanceExtent(extrudelength, basecutdir)
+                _CompDef.Features.ExtrudeFeatures.Add(BaseExtDef)
+
+                'Create cut in Toolplate
+                Dim ToolProfile As Profile = BaseSketch.Profiles.AddForSolid()
+                Dim ToolExtDef As ExtrudeDefinition = _CompDef.Features.ExtrudeFeatures.CreateExtrudeDefinition(ToolProfile, PartFeatureOperationEnum.kCutOperation)
+
+                Dim Toolcoll As ObjectCollection = _invApp.TransientObjects.CreateObjectCollection
+                Call Toolcoll.Add(BasePlate.PlateSurfBodyID)
+                ToolExtDef.AffectedBodies = Toolcoll
+
+                Call ToolExtDef.SetDistanceExtent(extrudelength, toolcutdir)
+                _CompDef.Features.ExtrudeFeatures.Add(ToolExtDef)
+            End If
+
         Next
+
     End Sub
 
     '************* DXF Export ************
@@ -775,7 +835,8 @@ Public Class Form1
     Private Sub DXFExport()
 
         CreateFolder()
-        CreateSMAssy()
+        Dim assy As AssemblyDocument = CreateSMAssy()
+        NEST(assy)
 
     End Sub
 
@@ -798,7 +859,7 @@ Public Class Form1
         System.IO.Directory.CreateDirectory(_Filelocation)
     End Sub
 
-    Private Sub CreateSMAssy()
+    Private Function CreateSMAssy() As AssemblyDocument
 
         'Create New assembly
         Dim assy As AssemblyDocument = _invApp.Documents.Add(DocumentTypeEnum.kAssemblyDocumentObject, "", True)
@@ -890,6 +951,32 @@ Public Class Form1
 
         My.Forms.ProgressForm.Close()
         assy.Save()
+
+        Return assy
+
+    End Function
+
+    Private Sub NEST(assy As AssemblyDocument)
+        Dim trans As TransientGeometry = _invApp.TransientGeometry
+        Dim index As Integer
+        Dim Pplatenumber As Integer = _PrimPlates.Count
+        Dim Splatenumber As Integer = _SeconPlates.Count
+        For Each occ As ComponentOccurrence In assy.ComponentDefinition.Occurrences
+            If occ.DefinitionDocumentType = DocumentTypeEnum.kPartDocumentObject Then
+                Dim partcomp As PartComponentDefinition = occ.
+            End If
+            occ.Grounded = False
+            index = 0
+            If _PrimPlates.Item(index).PlateCutDir = 1 Then
+                occ.Definition.
+            End If
+
+
+
+            Dim firstobj As Object = occ.SurfaceBodies.Item(1).Faces.Item(index) 'occ.SurfaceBodies.Item(1).Faces.Item(1)
+            Dim secobj As Object = assy.ComponentDefinition.WorkPlanes.Item(1)
+            assy.ComponentDefinition.Constraints.AddFlushConstraint(firstobj, secobj, 0)
+        Next
 
     End Sub
 
