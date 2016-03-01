@@ -952,27 +952,9 @@ Public Class Form1
                 NewPrt.Close()
 
                 assy.ComponentDefinition.Occurrences.Add(FFName, oMatrix)
-                Dim occ As AssemblyComponentDefinition = assy.ComponentDefinition
 
-                Dim firstocc As ComponentOccurrence = assy.ComponentDefinition.Occurrences.Item(1)
-                
+                Constrainpart(assy)
 
-                If i > 1 Then
-
-                    Dim assyocc As ComponentOccurrence = assy.ComponentDefinition.Occurrences.Item(assy.ComponentDefinition.Occurrences.Count)
-                    If assyocc.DefinitionDocumentType = DocumentTypeEnum.kPartDocumentObject Then
-                        assyocc.Grounded = False
-                        Dim partdef As PartComponentDefinition = assyocc.Definition
-                        Dim firstobj As WorkPlane = partdef.WorkPlanes.Item(_MainDir.Key)
-                        Dim secobj As WorkPlane = assy.ComponentDefinition.WorkPlanes.Item(1)
-                        Call assy.ComponentDefinition.Constraints.AddFlushConstraint(firstobj, secobj, 10) '_PrimPlates.Item(i).PlatePosition
-
-                    End If
-
-                End If
-
-                'assy.ComponentDefinition.Occurrences.Item(assy.ComponentDefinition.Occurrences.Count).Grounded = True
-                ' _invApp.ScreenUpdating = True
             End If
         Next
 
@@ -982,6 +964,39 @@ Public Class Form1
         Return assy
 
     End Function
+
+    Public Sub Constrainpart(assy As AssemblyDocument)
+
+        ' get the active component definition
+        Dim oAsmCompDef As AssemblyComponentDefinition
+        oAsmCompDef = assy.ComponentDefinition
+
+        ' get the workplane
+        Dim oAssyPlane As WorkPlane = oAsmCompDef.WorkPlanes.Item(2)
+        'Dim OPt As Point = Nothing
+        'Dim XV As UnitVector = Nothing
+        'Dim YV As UnitVector = Nothing
+        'oAsmCompDef.WorkPlanes(2).GetPosition(OPt, XV, YV)
+
+        '' and add fixed
+        'oAssyPlane = oAsmCompDef.WorkPlanes.AddFixed(OPt, XV, YV)
+
+        ' create geometry proxy
+        Dim oOcc1 As ComponentOccurrence
+        oOcc1 = oAsmCompDef.Occurrences(oAsmCompDef.Occurrences.Count)
+        Dim oPartPlaneXZ As WorkPlane
+        oPartPlaneXZ = oOcc1.Definition.WorkPlanes(2)
+        Dim oPartPlane1 As WorkPlaneProxy = Nothing
+        oOcc1.CreateGeometryProxy(oPartPlaneXZ, oPartPlane1)
+
+        ' and finally add the constraint
+        'Dim oldV As Boolean
+        'oldV = oAssyPlane.Grounded
+        'oAssyPlane.Grounded = True
+        oAsmCompDef.Constraints.AddMateConstraint(oPartPlane1, oAssyPlane, 0)
+        'oAssyPlane.Grounded = oldV
+    End Sub
+
 
     Private Sub GetSurfaeID()
         Dim face As Face = _invApp.CommandManager.Pick(SelectionFilterEnum.kPartFaceFilter, "select a face")
