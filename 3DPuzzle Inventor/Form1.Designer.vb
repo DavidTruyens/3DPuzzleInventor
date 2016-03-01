@@ -31,6 +31,7 @@ Partial Class Form1
         Me.GetBodyButton = New System.Windows.Forms.Button()
         Me.DXFButton = New System.Windows.Forms.Button()
         Me.DeleteButton = New System.Windows.Forms.Button()
+        Me.Button1 = New System.Windows.Forms.Button()
         CType(Me.SliceThickness, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.NumberOfSlices, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.SuspendLayout()
@@ -114,11 +115,21 @@ Partial Class Form1
         Me.DeleteButton.UseVisualStyleBackColor = True
         Me.DeleteButton.Visible = False
         '
+        'Button1
+        '
+        Me.Button1.Location = New System.Drawing.Point(29, 151)
+        Me.Button1.Name = "Button1"
+        Me.Button1.Size = New System.Drawing.Size(111, 20)
+        Me.Button1.TabIndex = 18
+        Me.Button1.Text = "Get Surface ID"
+        Me.Button1.UseVisualStyleBackColor = True
+        '
         'Form1
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
-        Me.ClientSize = New System.Drawing.Size(260, 152)
+        Me.ClientSize = New System.Drawing.Size(260, 183)
+        Me.Controls.Add(Me.Button1)
         Me.Controls.Add(Me.DeleteButton)
         Me.Controls.Add(Me.DXFButton)
         Me.Controls.Add(Me.GetBodyButton)
@@ -144,4 +155,5 @@ Partial Class Form1
     Friend WithEvents GetBodyButton As Button
     Friend WithEvents DXFButton As Button
     Friend WithEvents DeleteButton As Button
+    Friend WithEvents Button1 As Button
 End Class

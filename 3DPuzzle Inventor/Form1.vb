@@ -9,6 +9,7 @@ Imports System.IO
 
 
 Public Class Form1
+    'global variables
     Public Shared _invApp As Inventor.Application
     Dim _Doc As Inventor.PartDocument
     Dim _OrigDoc As Inventor.PartDocument
@@ -25,15 +26,21 @@ Public Class Form1
     Dim _BaseBodyCenter As Double
     Dim _secondaryPlane As WorkPlane
     Dim _Filelocation As String
+    Dim _MainDir As KeyValuePair(Of Integer, Double)
     Dim _PrimPlates As New List(Of Plate)
     Dim _SeconPlates As New List(Of Plate)
+
+    'Debug options
     Dim _DebugMode As Boolean = False
     Dim _Colormode As Boolean = True
     Dim _Scaled As Boolean = False
+    Dim _CreateIntersections As Boolean = False
+    Dim _Nest As Boolean = True
+
+    'Production variables
     Dim _TargetVolume As Double = 5000
     Dim _ToolDiam As Double = 0.02
     Dim _Toolcomp As Boolean = True
-    Dim _Nest As Boolean = True
 
     Public Sub New()
 
@@ -86,27 +93,26 @@ Public Class Form1
         If startbody IsNot Nothing Then
 
             'Calculates the longest value of the boundingbox and sets that as the direction for the primary plates
-            Dim MainDir As KeyValuePair(Of Integer, Double) = GetBoundingBoxLength(startbody)
+            _MainDir = GetBoundingBoxLength(startbody)
 
             _initialComp = _CompDef.SurfaceBodies.Count
 
             'only needed to see the deviation of the boundingbox with freeform models
-            If _DebugMode Then
-                boundingboxcheck(startbody)
-            End If
+            If _DebugMode Then boundingboxcheck(startbody)
 
             'Createion of the slices in two directions
-            GenerateSlices(MainDir, startbody)
+            GenerateSlices(startbody)
 
             'Makes components visible and colors the first plates in each direction
             makebodiesvisible()
 
             'Creates intesections in plates. Plates who don't have an intersection will be turned invisible
-            CreateIntersections()
+            If _CreateIntersections Then CreateIntersections()
 
             MsgBox("Plate creation finished. Check the results, make changes if needed and click the DXF button!")
 
             DXFButton.Enabled = True
+
         End If
 
     End Sub
@@ -308,17 +314,17 @@ Public Class Form1
 
     '*********** Generate Slices ************
 
-    Private Sub GenerateSlices(MainDir As KeyValuePair(Of Integer, Double), baseBody As SurfaceBody)
+    Private Sub GenerateSlices(baseBody As SurfaceBody)
         Dim mainposition As Double
         Dim secondarypostion As Double
 
         Dim basePlane As WorkPlane
 
-        _Spacing = MainDir.Value / NumberOfSlices.Value
+        _Spacing = _MainDir.Value / NumberOfSlices.Value
 
         _BodyIndex = _initialComp + 1
 
-        Select Case MainDir.Key
+        Select Case _MainDir.Key
             Case 1
                 mainposition = baseBody.RangeBox.MinPoint.X + _Spacing / 2
                 basePlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(1), mainposition)
@@ -749,7 +755,7 @@ Public Class Form1
                     End If
                 End If
             End If
-            
+
             'Create point
             Dim CenterWorkPoint As WorkPoint = WorkPts.AddByThreePlanes(splitplane, ToolPlate.Plateplane, BasePlate.Plateplane)
             CenterWorkPoint.Visible = False
@@ -836,7 +842,7 @@ Public Class Form1
 
         CreateFolder()
         Dim assy As AssemblyDocument = CreateSMAssy()
-        NEST(assy)
+        'NEST(assy)
 
     End Sub
 
@@ -904,11 +910,13 @@ Public Class Form1
             If _CompDef.SurfaceBodies.Item(i).Visible = True Then
                 ' _invApp.ScreenUpdating = False
                 Dim NewPrt As PartDocument
-                NewPrt = _invApp.Documents.Add(DocumentTypeEnum.kPartDocumentObject,
-                         _invApp.FileManager.GetTemplateFile(DocumentTypeEnum.kPartDocumentObject,
-                                                             SystemOfMeasureEnum.kDefaultSystemOfMeasure,
-                                                             DraftingStandardEnum.kDefault_DraftingStandard,
-                                                             "{9C464203-9BAE-11D3-8BAD-0060B0CE6BB4}"), False)
+                NewPrt = _invApp.Documents.Add(DocumentTypeEnum.kPartDocumentObject, _invApp.FileManager.GetTemplateFile(DocumentTypeEnum.kPartDocumentObject))
+                'New sheetmetal
+                '_invApp.Documents.Add(DocumentTypeEnum.kPartDocumentObject,
+                '         _invApp.FileManager.GetTemplateFile(DocumentTypeEnum.kPartDocumentObject,
+                '                                             SystemOfMeasureEnum.kDefaultSystemOfMeasure,
+                '                                             DraftingStandardEnum.kDefault_DraftingStandard,
+                '                                             "{9C464203-9BAE-11D3-8BAD-0060B0CE6BB4}"), False)
 
                 'Create a derived definition for the selected part
                 Dim DerivedPrtDef As DerivedPartUniformScaleDef
@@ -919,9 +927,9 @@ Public Class Form1
                 ' Create the derived part.
                 NewPrt.ComponentDefinition.ReferenceComponents.DerivedPartComponents.Add(DerivedPrtDef)
 
-                Dim SMCompdef As SheetMetalComponentDefinition = NewPrt.ComponentDefinition
-                SMCompdef.UseSheetMetalStyleThickness = False
-                SMCompdef.Thickness.Value = SliceThickness.Value
+                'Dim SMCompdef As SheetMetalComponentDefinition = NewPrt.ComponentDefinition
+                'SMCompdef.UseSheetMetalStyleThickness = False
+                'SMCompdef.Thickness.Value = SliceThickness.Value
 
                 Dim newname As String = _Filelocation + "\" + _CompDef.SurfaceBodies.Item(i).Name + ".ipt"
 
@@ -933,18 +941,37 @@ Public Class Form1
 
                 NewPrt.SaveAs(newname, False)
 
-                SMCompdef.Unfold()
+                'SMCompdef.Unfold()
 
-                Dim DXFName As String = Replace(newname, ".ipt", ".dxf")
-                Dim oDataIO As DataIO = NewPrt.ComponentDefinition.DataIO
-                oDataIO.WriteDataToFile("FLAT PATTERN DXF?AcadVersion=R12", DXFName)
+                'Dim DXFName As String = Replace(newname, ".ipt", ".dxf")
+                'Dim oDataIO As DataIO = NewPrt.ComponentDefinition.DataIO
+                'oDataIO.WriteDataToFile("FLAT PATTERN DXF?AcadVersion=R12", DXFName)
 
                 NewPrt.Save()
                 Dim FFName As String = NewPrt.FullFileName
                 NewPrt.Close()
 
                 assy.ComponentDefinition.Occurrences.Add(FFName, oMatrix)
-                assy.ComponentDefinition.Occurrences.Item(assy.ComponentDefinition.Occurrences.Count).Grounded = True
+                Dim occ As AssemblyComponentDefinition = assy.ComponentDefinition
+
+                Dim firstocc As ComponentOccurrence = assy.ComponentDefinition.Occurrences.Item(1)
+                
+
+                If i > 1 Then
+
+                    Dim assyocc As ComponentOccurrence = assy.ComponentDefinition.Occurrences.Item(assy.ComponentDefinition.Occurrences.Count)
+                    If assyocc.DefinitionDocumentType = DocumentTypeEnum.kPartDocumentObject Then
+                        assyocc.Grounded = False
+                        Dim partdef As PartComponentDefinition = assyocc.Definition
+                        Dim firstobj As WorkPlane = partdef.WorkPlanes.Item(_MainDir.Key)
+                        Dim secobj As WorkPlane = assy.ComponentDefinition.WorkPlanes.Item(1)
+                        Call assy.ComponentDefinition.Constraints.AddFlushConstraint(firstobj, secobj, 10) '_PrimPlates.Item(i).PlatePosition
+
+                    End If
+
+                End If
+
+                'assy.ComponentDefinition.Occurrences.Item(assy.ComponentDefinition.Occurrences.Count).Grounded = True
                 ' _invApp.ScreenUpdating = True
             End If
         Next
@@ -956,29 +983,50 @@ Public Class Form1
 
     End Function
 
-    Private Sub NEST(assy As AssemblyDocument)
-        Dim trans As TransientGeometry = _invApp.TransientGeometry
-        Dim index As Integer
-        Dim Pplatenumber As Integer = _PrimPlates.Count
-        Dim Splatenumber As Integer = _SeconPlates.Count
-        For Each occ As ComponentOccurrence In assy.ComponentDefinition.Occurrences
-            If occ.DefinitionDocumentType = DocumentTypeEnum.kPartDocumentObject Then
-                Dim partcomp As PartComponentDefinition = occ.
-            End If
-            occ.Grounded = False
-            index = 0
-            If _PrimPlates.Item(index).PlateCutDir = 1 Then
-                occ.Definition.
-            End If
+    Private Sub GetSurfaeID()
+        Dim face As Face = _invApp.CommandManager.Pick(SelectionFilterEnum.kPartFaceFilter, "select a face")
+        Dim doc As Document = _invApp.ActiveDocument
+        MsgBox(face.InternalName)
+
+        If doc.DocumentType = DocumentTypeEnum.kAssemblyDocumentObject Then
+            Dim assydoc As AssemblyDocument = doc
+            Dim doccomp As AssemblyComponentDefinition = assydoc.ComponentDefinition
 
 
+        ElseIf doc.DocumentType = DocumentTypeEnum.kPartDocumentObject Then
+            Dim partdoc As PartDocument = doc
+            Dim doccomp As PartComponentDefinition = partdoc.ComponentDefinition
+        Else
+            MsgBox("please open a part or an assembly document")
+            Exit Sub
+        End If
 
-            Dim firstobj As Object = occ.SurfaceBodies.Item(1).Faces.Item(index) 'occ.SurfaceBodies.Item(1).Faces.Item(1)
-            Dim secobj As Object = assy.ComponentDefinition.WorkPlanes.Item(1)
-            assy.ComponentDefinition.Constraints.AddFlushConstraint(firstobj, secobj, 0)
-        Next
 
     End Sub
+
+    'Private Sub NEST(assy As AssemblyDocument)
+    '    Dim trans As TransientGeometry = _invApp.TransientGeometry
+    '    Dim index As Integer
+    '    Dim Pplatenumber As Integer = _PrimPlates.Count
+    '    Dim Splatenumber As Integer = _SeconPlates.Count
+    '    For Each occ As ComponentOccurrence In assy.ComponentDefinition.Occurrences
+    '        If occ.DefinitionDocumentType = DocumentTypeEnum.kPartDocumentObject Then
+    '            Dim partcomp As PartComponentDefinition = occ.
+    '        End If
+    '        occ.Grounded = False
+    '        index = 0
+    '        If _PrimPlates.Item(index).PlateCutDir = 1 Then
+    '            occ.Definition.
+    '        End If
+
+
+
+    '        Dim firstobj As Object = occ.SurfaceBodies.Item(1).Faces.Item(index) 'occ.SurfaceBodies.Item(1).Faces.Item(1)
+    '        Dim secobj As Object = assy.ComponentDefinition.WorkPlanes.Item(1)
+    '        assy.ComponentDefinition.Constraints.AddFlushConstraint(firstobj, secobj, 0)
+    '    Next
+
+    'End Sub
 
     '************* Radio toggles *********
 
@@ -1006,6 +1054,9 @@ Public Class Form1
         End If
     End Sub
 
+    Private Sub Button1_Click(sender As Object, e As EventArgs) Handles Button1.Click
+        GetSurfaeID()
+    End Sub
 End Class
 
 Public Class Plate
