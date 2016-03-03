@@ -1055,6 +1055,7 @@ Public Class Form1
             newname = newname + " " + ToD + ".iam"
         End If
 
+        assy.ComponentDefinition.Sketches.Item(1).Visible = False
         assy.SaveAs(newname, False)
 
         Dim NewPrt As PartDocument
@@ -1062,9 +1063,12 @@ Public Class Form1
 
         'Create a derived definition for the selected part
         Dim assyderive As DerivedAssemblyDefinition
-
         assyderive = NewPrt.ComponentDefinition.ReferenceComponents.DerivedAssemblyComponents.CreateDefinition(assy.FullFileName)
+
         NewPrt.ComponentDefinition.ReferenceComponents.DerivedAssemblyComponents.Add(assyderive)
+        Dim Profileplane As WorkPlane = NewPrt.ComponentDefinition.WorkPlanes.Item(2)
+        Dim ProfileSketch As PlanarSketch = NewPrt.ComponentDefinition.Sketches.Add(Profileplane)
+        ProfileSketch.ProjectedCuts.Add()
 
         NewPrt.Views.Item(1).GoHome()
 
