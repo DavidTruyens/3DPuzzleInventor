@@ -29,9 +29,9 @@ Partial Class Form1
         Me.SliceThickness = New System.Windows.Forms.NumericUpDown()
         Me.NumberOfSlices = New System.Windows.Forms.NumericUpDown()
         Me.GetBodyButton = New System.Windows.Forms.Button()
-        Me.DXFButton = New System.Windows.Forms.Button()
-        Me.DeleteButton = New System.Windows.Forms.Button()
+        Me.NESTButton = New System.Windows.Forms.Button()
         Me.Button1 = New System.Windows.Forms.Button()
+        Me.GenerateDXFButton = New System.Windows.Forms.Button()
         CType(Me.SliceThickness, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.NumberOfSlices, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.SuspendLayout()
@@ -39,7 +39,7 @@ Partial Class Form1
         'Ydir
         '
         Me.Ydir.AutoSize = True
-        Me.Ydir.Location = New System.Drawing.Point(168, 44)
+        Me.Ydir.Location = New System.Drawing.Point(126, 32)
         Me.Ydir.Name = "Ydir"
         Me.Ydir.Size = New System.Drawing.Size(43, 17)
         Me.Ydir.TabIndex = 14
@@ -49,7 +49,7 @@ Partial Class Form1
         'Zdir
         '
         Me.Zdir.AutoSize = True
-        Me.Zdir.Location = New System.Drawing.Point(168, 67)
+        Me.Zdir.Location = New System.Drawing.Point(126, 55)
         Me.Zdir.Name = "Zdir"
         Me.Zdir.Size = New System.Drawing.Size(43, 17)
         Me.Zdir.TabIndex = 13
@@ -60,7 +60,7 @@ Partial Class Form1
         '
         Me.Xdir.AutoSize = True
         Me.Xdir.Checked = True
-        Me.Xdir.Location = New System.Drawing.Point(168, 21)
+        Me.Xdir.Location = New System.Drawing.Point(126, 9)
         Me.Xdir.Name = "Xdir"
         Me.Xdir.Size = New System.Drawing.Size(43, 17)
         Me.Xdir.TabIndex = 12
@@ -71,7 +71,7 @@ Partial Class Form1
         'SliceThickness
         '
         Me.SliceThickness.DecimalPlaces = 2
-        Me.SliceThickness.Location = New System.Drawing.Point(29, 118)
+        Me.SliceThickness.Location = New System.Drawing.Point(29, 125)
         Me.SliceThickness.Name = "SliceThickness"
         Me.SliceThickness.Size = New System.Drawing.Size(111, 20)
         Me.SliceThickness.TabIndex = 11
@@ -80,7 +80,7 @@ Partial Class Form1
         '
         'NumberOfSlices
         '
-        Me.NumberOfSlices.Location = New System.Drawing.Point(29, 68)
+        Me.NumberOfSlices.Location = New System.Drawing.Point(29, 99)
         Me.NumberOfSlices.Name = "NumberOfSlices"
         Me.NumberOfSlices.Size = New System.Drawing.Size(111, 20)
         Me.NumberOfSlices.TabIndex = 10
@@ -88,32 +88,22 @@ Partial Class Form1
         '
         'GetBodyButton
         '
-        Me.GetBodyButton.Location = New System.Drawing.Point(29, 21)
+        Me.GetBodyButton.Location = New System.Drawing.Point(6, 5)
         Me.GetBodyButton.Name = "GetBodyButton"
         Me.GetBodyButton.Size = New System.Drawing.Size(111, 23)
         Me.GetBodyButton.TabIndex = 15
         Me.GetBodyButton.Text = "Get body"
         Me.GetBodyButton.UseVisualStyleBackColor = True
         '
-        'DXFButton
+        'NESTButton
         '
-        Me.DXFButton.Enabled = False
-        Me.DXFButton.Location = New System.Drawing.Point(29, 44)
-        Me.DXFButton.Name = "DXFButton"
-        Me.DXFButton.Size = New System.Drawing.Size(111, 23)
-        Me.DXFButton.TabIndex = 16
-        Me.DXFButton.Text = "Create Assembly"
-        Me.DXFButton.UseVisualStyleBackColor = True
-        '
-        'DeleteButton
-        '
-        Me.DeleteButton.Location = New System.Drawing.Point(29, 94)
-        Me.DeleteButton.Name = "DeleteButton"
-        Me.DeleteButton.Size = New System.Drawing.Size(111, 23)
-        Me.DeleteButton.TabIndex = 17
-        Me.DeleteButton.Text = "Delete Puzzle"
-        Me.DeleteButton.UseVisualStyleBackColor = True
-        Me.DeleteButton.Visible = False
+        Me.NESTButton.Enabled = False
+        Me.NESTButton.Location = New System.Drawing.Point(6, 28)
+        Me.NESTButton.Name = "NESTButton"
+        Me.NESTButton.Size = New System.Drawing.Size(111, 23)
+        Me.NESTButton.TabIndex = 16
+        Me.NESTButton.Text = "Nest it DIY"
+        Me.NESTButton.UseVisualStyleBackColor = True
         '
         'Button1
         '
@@ -124,14 +114,24 @@ Partial Class Form1
         Me.Button1.Text = "Get Surface ID"
         Me.Button1.UseVisualStyleBackColor = True
         '
+        'GenerateDXFButton
+        '
+        Me.GenerateDXFButton.Enabled = False
+        Me.GenerateDXFButton.Location = New System.Drawing.Point(6, 51)
+        Me.GenerateDXFButton.Name = "GenerateDXFButton"
+        Me.GenerateDXFButton.Size = New System.Drawing.Size(111, 23)
+        Me.GenerateDXFButton.TabIndex = 19
+        Me.GenerateDXFButton.Text = "Generate DXF"
+        Me.GenerateDXFButton.UseVisualStyleBackColor = True
+        '
         'Form1
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
-        Me.ClientSize = New System.Drawing.Size(260, 183)
+        Me.ClientSize = New System.Drawing.Size(174, 81)
+        Me.Controls.Add(Me.GenerateDXFButton)
         Me.Controls.Add(Me.Button1)
-        Me.Controls.Add(Me.DeleteButton)
-        Me.Controls.Add(Me.DXFButton)
+        Me.Controls.Add(Me.NESTButton)
         Me.Controls.Add(Me.GetBodyButton)
         Me.Controls.Add(Me.Ydir)
         Me.Controls.Add(Me.Zdir)
@@ -153,7 +153,7 @@ Partial Class Form1
     Friend WithEvents SliceThickness As NumericUpDown
     Friend WithEvents NumberOfSlices As NumericUpDown
     Friend WithEvents GetBodyButton As Button
-    Friend WithEvents DXFButton As Button
-    Friend WithEvents DeleteButton As Button
+    Friend WithEvents NESTButton As Button
     Friend WithEvents Button1 As Button
+    Friend WithEvents GenerateDXFButton As Button
 End Class

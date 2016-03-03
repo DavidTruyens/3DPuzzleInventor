@@ -24,11 +24,13 @@ Public Class Form1
     Dim _SecondaryExtra As Integer = 0
     Dim _Spacing As Double
     Dim _BaseBodyCenter As Double
+    Dim _SecondaryDir As Integer
     Dim _secondaryPlane As WorkPlane
     Dim _Filelocation As String
     Dim _MainDir As KeyValuePair(Of Integer, Double)
     Dim _PrimPlates As New List(Of Plate)
     Dim _SeconPlates As New List(Of Plate)
+    Dim _NestAssy As AssemblyDocument
 
     'Debug options
     Dim _DebugMode As Boolean = False
@@ -74,14 +76,13 @@ Public Class Form1
             Return
         End If
 
-        ' My.Forms.Form1.TopMost = True
+        Me.TopMost = True
 
     End Sub
 
-    '************ Start Puzzle ***********
+    '************ Interface ***********
 
     Private Sub GetBodyButton_Click(sender As Object, e As EventArgs) Handles GetBodyButton.Click
-
         _OrigDoc = _invApp.ActiveDocument
 
         'Get the actual surface body
@@ -109,30 +110,34 @@ Public Class Form1
             'Creates intesections in plates. Plates who don't have an intersection will be turned invisible
             If _CreateIntersections Then CreateIntersections()
 
-            MsgBox("Plate creation finished. Check the results, make changes if needed and click the DXF button!")
+            MsgBox("Platen zijn klaar! Controleer de resultaten, maak aanpassingen indien nodig" & vbNewLine & "Als je tevreden bent van het resultaat klik de Nest knop.", MsgBoxStyle.OkOnly, "Puzzel klaar")
 
-            DXFButton.Enabled = True
+            NESTButton.Enabled = True
 
         End If
 
     End Sub
 
-    Private Sub DXFButton_Click(sender As Object, e As EventArgs) Handles DXFButton.Click
-        DXFExport()
+    Private Sub NESTButton_Click(sender As Object, e As EventArgs) Handles NESTButton.Click
 
-        Dim FileMsg As DialogResult
-        FileMsg = MsgBox("All contours have been exported and can be found here:" & vbNewLine & _Filelocation & vbNewLine & "Click YES to go to the file location", MsgBoxStyle.YesNo)
+        CreateFolder()
+        _NestAssy = CreateNestAssy()
+        MsgBox("Fit all parts within the sketch box!" & vbNewLine & "Als dat klaar is klik je op de DXF knop")
 
-        If FileMsg = DialogResult.Yes Then
-            Process.Start(_Filelocation)
+        GenerateDXFButton.Enabled = True
+
+    End Sub
+
+    Private Sub GenerateDXFButton_Click(sender As Object, e As EventArgs) Handles GenerateDXFButton.Click
+        If Not InterferenceCheck(_NestAssy) Then
+            ExportDXF(_NestAssy)
+            My.Forms.Form1.Close()
+
         End If
 
-        My.Forms.Form1.Close()
     End Sub
 
-    Private Sub DeleteButton_Click(sender As Object, e As EventArgs) Handles DeleteButton.Click
-        DeletePuzzle()
-    End Sub
+    '************ Start Puzzle ***********
 
     Private Function GetBody() As SurfaceBody
         ' Have the bodies selected. 
@@ -150,7 +155,7 @@ Public Class Form1
             'Check if a puzzle already exist. It should be deleted before you can continue
             If Puzzletest() Then
                 Dim msg1res As DialogResult
-                msg1res = MsgBox("A puzzle was already created, would you like to delete it?", MsgBoxStyle.YesNo, "Puzzletest") '& MsgBoxStyle.SystemModal, "On Top"
+                msg1res = MsgBox("A puzzle was already created, would you like to delete it?", MsgBoxStyle.YesNo, "Puzzletest")
                 If msg1res = DialogResult.Yes Then
                     DeletePuzzle()
                 Else
@@ -384,40 +389,6 @@ Public Class Form1
 
     End Sub
 
-    Private Sub boundingboxcheck(basebody As SurfaceBody)
-
-        Dim boundingboxXmin As WorkPlane
-        Dim boundingboxXmax As WorkPlane
-        Dim boundingboxYmin As WorkPlane
-        Dim boundingboxYmax As WorkPlane
-        Dim boundingboxZmin As WorkPlane
-        Dim boundingboxZmax As WorkPlane
-
-        boundingboxXmin = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(1), basebody.RangeBox.MinPoint.X)
-        boundingboxXmax = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(1), basebody.RangeBox.MaxPoint.X)
-        boundingboxYmin = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(2), basebody.RangeBox.MinPoint.Y)
-        boundingboxYmax = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(2), basebody.RangeBox.MaxPoint.Y)
-        boundingboxZmin = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(3), basebody.RangeBox.MinPoint.Z)
-        boundingboxZmax = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(3), basebody.RangeBox.MaxPoint.Z)
-
-        boundingboxXmin.Name = "Xmin"
-        boundingboxXmax.Name = "Xmax"
-        boundingboxYmin.Name = "Ymin"
-        boundingboxYmax.Name = "Ymax"
-        boundingboxZmin.Name = "Zmin"
-        boundingboxZmax.Name = "Zmax"
-
-        boundingboxXmin.Visible = False
-        boundingboxXmax.Visible = False
-        boundingboxYmin.Visible = False
-        boundingboxYmax.Visible = False
-        boundingboxZmin.Visible = False
-        boundingboxZmax.Visible = False
-
-
-
-    End Sub
-
     Private Function SecondaryStart(BaseBody As SurfaceBody, planenumber As Integer) As Double
 
         Dim width As Double
@@ -425,6 +396,7 @@ Public Class Form1
         Dim secondarypostion As Double
         Dim Maxpoint As Double
         Dim Minpoint As Double
+        _SecondaryDir = planenumber
 
         If planenumber = 1 Then
             Maxpoint = BaseBody.RangeBox.MaxPoint.X
@@ -836,15 +808,7 @@ Public Class Form1
 
     End Sub
 
-    '************* DXF Export ************
-
-    Private Sub DXFExport()
-
-        CreateFolder()
-        Dim assy As AssemblyDocument = CreateSMAssy()
-        'NEST(assy)
-
-    End Sub
+    '************* Generate Nest Assembly ************
 
     Private Sub CreateFolder()
 
@@ -865,7 +829,7 @@ Public Class Form1
         System.IO.Directory.CreateDirectory(_Filelocation)
     End Sub
 
-    Private Function CreateSMAssy() As AssemblyDocument
+    Private Function CreateNestAssy() As AssemblyDocument
 
         'Create New assembly
         Dim assy As AssemblyDocument = _invApp.Documents.Add(DocumentTypeEnum.kAssemblyDocumentObject, "", True)
@@ -893,6 +857,7 @@ Public Class Form1
         End If
 
         assy.SaveAs(assyname, False)
+        CreateBoundingBox(assy)
 
         Dim i As Integer = 0
         Dim progressval As Integer = 0
@@ -900,6 +865,8 @@ Public Class Form1
 
         My.Forms.ProgressForm.Show()
         My.Forms.ProgressForm.TopMost = True
+
+        Dim platecounter As Integer = 0
 
         For i = 1 To _CompDef.SurfaceBodies.Count
 
@@ -910,13 +877,7 @@ Public Class Form1
             If _CompDef.SurfaceBodies.Item(i).Visible = True Then
                 ' _invApp.ScreenUpdating = False
                 Dim NewPrt As PartDocument
-                NewPrt = _invApp.Documents.Add(DocumentTypeEnum.kPartDocumentObject, _invApp.FileManager.GetTemplateFile(DocumentTypeEnum.kPartDocumentObject))
-                'New sheetmetal
-                '_invApp.Documents.Add(DocumentTypeEnum.kPartDocumentObject,
-                '         _invApp.FileManager.GetTemplateFile(DocumentTypeEnum.kPartDocumentObject,
-                '                                             SystemOfMeasureEnum.kDefaultSystemOfMeasure,
-                '                                             DraftingStandardEnum.kDefault_DraftingStandard,
-                '                                             "{9C464203-9BAE-11D3-8BAD-0060B0CE6BB4}"), False)
+                NewPrt = _invApp.Documents.Add(DocumentTypeEnum.kPartDocumentObject, _invApp.FileManager.GetTemplateFile(DocumentTypeEnum.kPartDocumentObject), False)
 
                 'Create a derived definition for the selected part
                 Dim DerivedPrtDef As DerivedPartUniformScaleDef
@@ -926,10 +887,6 @@ Public Class Form1
 
                 ' Create the derived part.
                 NewPrt.ComponentDefinition.ReferenceComponents.DerivedPartComponents.Add(DerivedPrtDef)
-
-                'Dim SMCompdef As SheetMetalComponentDefinition = NewPrt.ComponentDefinition
-                'SMCompdef.UseSheetMetalStyleThickness = False
-                'SMCompdef.Thickness.Value = SliceThickness.Value
 
                 Dim newname As String = _Filelocation + "\" + _CompDef.SurfaceBodies.Item(i).Name + ".ipt"
 
@@ -941,19 +898,14 @@ Public Class Form1
 
                 NewPrt.SaveAs(newname, False)
 
-                'SMCompdef.Unfold()
-
-                'Dim DXFName As String = Replace(newname, ".ipt", ".dxf")
-                'Dim oDataIO As DataIO = NewPrt.ComponentDefinition.DataIO
-                'oDataIO.WriteDataToFile("FLAT PATTERN DXF?AcadVersion=R12", DXFName)
-
                 NewPrt.Save()
                 Dim FFName As String = NewPrt.FullFileName
                 NewPrt.Close()
 
                 assy.ComponentDefinition.Occurrences.Add(FFName, oMatrix)
 
-                Constrainpart(assy)
+                Constrainpart(assy, platecounter)
+                platecounter = platecounter + 1
 
             End If
         Next
@@ -965,38 +917,171 @@ Public Class Form1
 
     End Function
 
-    Public Sub Constrainpart(assy As AssemblyDocument)
+    Private Sub CreateBoundingBox(assy As AssemblyDocument)
+        Dim trans As TransientGeometry = _invApp.TransientGeometry
 
-        ' get the active component definition
-        Dim oAsmCompDef As AssemblyComponentDefinition
-        oAsmCompDef = assy.ComponentDefinition
+        Dim SketchPln As WorkPlane = assy.ComponentDefinition.WorkPlanes.Item(2)
+        Dim assysketch As Sketch = assy.ComponentDefinition.Sketches.Add(SketchPln)
 
-        ' get the workplane
-        Dim oAssyPlane As WorkPlane = oAsmCompDef.WorkPlanes.Item(2)
-        'Dim OPt As Point = Nothing
-        'Dim XV As UnitVector = Nothing
-        'Dim YV As UnitVector = Nothing
-        'oAsmCompDef.WorkPlanes(2).GetPosition(OPt, XV, YV)
+        Dim point1 As Point2d = trans.CreatePoint2d
+        point1.X = 0
+        point1.Y = 0
 
-        '' and add fixed
-        'oAssyPlane = oAsmCompDef.WorkPlanes.AddFixed(OPt, XV, YV)
+        Dim point2 As Point2d = trans.CreatePoint2d
+        point1.X = 75
+        point1.Y = 60
 
-        ' create geometry proxy
-        Dim oOcc1 As ComponentOccurrence
-        oOcc1 = oAsmCompDef.Occurrences(oAsmCompDef.Occurrences.Count)
-        Dim oPartPlaneXZ As WorkPlane
-        oPartPlaneXZ = oOcc1.Definition.WorkPlanes(2)
-        Dim oPartPlane1 As WorkPlaneProxy = Nothing
-        oOcc1.CreateGeometryProxy(oPartPlaneXZ, oPartPlane1)
+        assysketch.SketchLines.AddAsTwoPointRectangle(point1, point2)
 
-        ' and finally add the constraint
-        'Dim oldV As Boolean
-        'oldV = oAssyPlane.Grounded
-        'oAssyPlane.Grounded = True
-        oAsmCompDef.Constraints.AddMateConstraint(oPartPlane1, oAssyPlane, 0)
-        'oAssyPlane.Grounded = oldV
+        Dim geomconstr As GeometricConstraints = assysketch.GeometricConstraints
+
+        For Each edge As SketchLine In assysketch.SketchLines
+            geomconstr.AddGround(edge)
+        Next
+
     End Sub
 
+    Public Sub Constrainpart(assy As AssemblyDocument, i As Integer)
+
+        ' get the active component definition
+        Dim AsmCompDef As AssemblyComponentDefinition
+        AsmCompDef = assy.ComponentDefinition
+
+        ' get the workplane
+        Dim oAssyPlane As WorkPlane = AsmCompDef.WorkPlanes.Item(2)
+
+        'get the occurence
+        Dim oOcc1 As ComponentOccurrence
+        oOcc1 = AsmCompDef.Occurrences(AsmCompDef.Occurrences.Count)
+        oOcc1.Grounded = False
+
+        'position 
+        Dim direcindex As Integer
+        Dim dist As Double
+
+        If i <= _PrimPlates.Count - 1 Then
+            direcindex = _MainDir.Key
+            dist = _PrimPlates.Item(i).PlatePosition
+        Else
+            direcindex = _SecondaryDir
+            dist = _SeconPlates.Item(i - _PrimPlates.Count).PlatePosition
+
+        End If
+
+        ' create geometry proxy
+        Dim ConstraintPlane As WorkPlane
+        ConstraintPlane = oOcc1.Definition.WorkPlanes(direcindex)
+        Dim oPartPlane1 As WorkPlaneProxy = Nothing
+        oOcc1.CreateGeometryProxy(ConstraintPlane, oPartPlane1)
+
+        ' and finally add the constraint
+        AsmCompDef.Constraints.AddMateConstraint(oPartPlane1, oAssyPlane, dist)
+
+    End Sub
+
+    '************* Export DXF file *****************
+
+    Private Function InterferenceCheck(assy As AssemblyDocument) As Boolean
+        'Add all occurences to a collecion
+        Dim CheckSet As ObjectCollection = _invApp.TransientObjects.CreateObjectCollection
+
+        For Each Occ As ComponentOccurrence In assy.ComponentDefinition.Occurrences
+            CheckSet.Add(Occ)
+        Next
+
+        Call assy.ComponentDefinition.ClearAppearanceOverrides()
+
+        'Check for interference
+        Dim InterResults As InterferenceResults
+        InterResults = assy.ComponentDefinition.AnalyzeInterference(CheckSet)
+
+        If InterResults.Count >= 1 Then
+            MsgBox("Er zijn " & InterResults.Count & " overlappende componenten, kijk je layout na!")
+
+            'Color parts with interferences
+            Dim assetLib As AssetLibrary
+            assetLib = _invApp.AssetLibraries.Item("Autodesk Appearance Library")
+
+            ' Copy the asset locally.
+            Dim localAsset1 As Asset
+            Dim localAsset2 As Asset
+
+            Try
+                ' Get an asset in the library.  Again, either the displayed name or the internal
+                ' name can be used.
+                Dim libAsset1 As Asset
+                libAsset1 = assetLib.AppearanceAssets.Item("Violet")
+                Dim libAsset2 As Asset
+                libAsset2 = assetLib.AppearanceAssets.Item("Pink")
+
+                localAsset1 = libAsset1.CopyTo(assy)
+                localAsset2 = libAsset2.CopyTo(assy)
+
+            Catch ex As Exception
+
+                localAsset1 = assy.AppearanceAssets.Item("Violet")
+                localAsset2 = assy.AppearanceAssets.Item("Pink")
+            End Try
+
+            Dim InterResult As InterferenceResult
+            Dim i As Integer = 0
+            For Each InterResult In InterResults
+                i = i + 1
+
+                Dim CompOne As ComponentOccurrence = InterResult.OccurrenceOne
+                CompOne.Appearance = localAsset1
+                Dim CompTwo As ComponentOccurrence = InterResult.OccurrenceTwo
+                CompTwo.Appearance = localAsset2
+
+            Next
+            Return True
+        Else
+            Return False
+
+        End If
+
+    End Function
+
+    Private Sub ExportDXF(assy As AssemblyDocument)
+        Dim NewPrt As PartDocument
+        NewPrt = _invApp.Documents.Add(DocumentTypeEnum.kPartDocumentObject, _invApp.FileManager.GetTemplateFile(DocumentTypeEnum.kPartDocumentObject))
+
+        'Create a derived definition for the selected part
+        Dim DerivedPrtDef As DerivedPartUniformScaleDef
+        DerivedPrtDef = NewPrt.ComponentDefinition.ReferenceComponents.DerivedPartComponents.CreateUniformScaleDef(assy.FullFileName)
+
+        'Call DerivedPrtDef.ExcludeAll()
+
+        ' set the scale to use
+        'DerivedPrtDef.ScaleFactor = Math.Pow(_TargetVolume / origVol, 1 / 3)
+
+        ' Create the derived part.
+        NewPrt.ComponentDefinition.ReferenceComponents.DerivedPartComponents.Add(DerivedPrtDef)
+        NewPrt.Views.Item(1).GoHome()
+
+        'Dim origname As String = origindoc.FullFileName
+        'Dim name As String = Replace(origname, ".ipt", "")
+        'Dim newname As String = name + "-scaled.ipt"
+
+        'If (System.IO.File.Exists(newname)) Then
+        '    Dim ToD As String = TimeOfDay.ToShortTimeString
+        '    ToD = Replace(ToD, ":", "-")
+        '    newname = Replace(newname, ".ipt", "")
+        '    newname = newname + " " + ToD + ".ipt"
+        'End If
+
+        'NewPrt.SaveAs(newname, False)
+        '_Doc = NewPrt
+        '_CompDef = _Doc.ComponentDefinition
+        'End If
+
+    End Sub
+
+    'Debug tools
+
+    Private Sub Button1_Click(sender As Object, e As EventArgs) Handles Button1.Click
+        GetSurfaeID()
+    End Sub
 
     Private Sub GetSurfaeID()
         Dim face As Face = _invApp.CommandManager.Pick(SelectionFilterEnum.kPartFaceFilter, "select a face")
@@ -1016,32 +1101,39 @@ Public Class Form1
             Exit Sub
         End If
 
-
     End Sub
 
-    'Private Sub NEST(assy As AssemblyDocument)
-    '    Dim trans As TransientGeometry = _invApp.TransientGeometry
-    '    Dim index As Integer
-    '    Dim Pplatenumber As Integer = _PrimPlates.Count
-    '    Dim Splatenumber As Integer = _SeconPlates.Count
-    '    For Each occ As ComponentOccurrence In assy.ComponentDefinition.Occurrences
-    '        If occ.DefinitionDocumentType = DocumentTypeEnum.kPartDocumentObject Then
-    '            Dim partcomp As PartComponentDefinition = occ.
-    '        End If
-    '        occ.Grounded = False
-    '        index = 0
-    '        If _PrimPlates.Item(index).PlateCutDir = 1 Then
-    '            occ.Definition.
-    '        End If
+    Private Sub boundingboxcheck(basebody As SurfaceBody)
 
+        Dim boundingboxXmin As WorkPlane
+        Dim boundingboxXmax As WorkPlane
+        Dim boundingboxYmin As WorkPlane
+        Dim boundingboxYmax As WorkPlane
+        Dim boundingboxZmin As WorkPlane
+        Dim boundingboxZmax As WorkPlane
 
+        boundingboxXmin = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(1), basebody.RangeBox.MinPoint.X)
+        boundingboxXmax = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(1), basebody.RangeBox.MaxPoint.X)
+        boundingboxYmin = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(2), basebody.RangeBox.MinPoint.Y)
+        boundingboxYmax = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(2), basebody.RangeBox.MaxPoint.Y)
+        boundingboxZmin = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(3), basebody.RangeBox.MinPoint.Z)
+        boundingboxZmax = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(3), basebody.RangeBox.MaxPoint.Z)
 
-    '        Dim firstobj As Object = occ.SurfaceBodies.Item(1).Faces.Item(index) 'occ.SurfaceBodies.Item(1).Faces.Item(1)
-    '        Dim secobj As Object = assy.ComponentDefinition.WorkPlanes.Item(1)
-    '        assy.ComponentDefinition.Constraints.AddFlushConstraint(firstobj, secobj, 0)
-    '    Next
+        boundingboxXmin.Name = "Xmin"
+        boundingboxXmax.Name = "Xmax"
+        boundingboxYmin.Name = "Ymin"
+        boundingboxYmax.Name = "Ymax"
+        boundingboxZmin.Name = "Zmin"
+        boundingboxZmax.Name = "Zmax"
 
-    'End Sub
+        boundingboxXmin.Visible = False
+        boundingboxXmax.Visible = False
+        boundingboxYmin.Visible = False
+        boundingboxYmax.Visible = False
+        boundingboxZmin.Visible = False
+        boundingboxZmax.Visible = False
+
+    End Sub
 
     '************* Radio toggles *********
 
@@ -1069,9 +1161,6 @@ Public Class Form1
         End If
     End Sub
 
-    Private Sub Button1_Click(sender As Object, e As EventArgs) Handles Button1.Click
-        GetSurfaeID()
-    End Sub
 End Class
 
 Public Class Plate
