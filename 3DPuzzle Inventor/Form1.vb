@@ -36,7 +36,7 @@ Public Class Form1
     Dim _DebugMode As Boolean = False
     Dim _Colormode As Boolean = True
     Dim _Scaled As Boolean = False
-    Dim _CreateIntersections As Boolean = False
+    Dim _CreateIntersections As Boolean = True
     Dim _Nest As Boolean = True
 
     'Production variables
@@ -1059,7 +1059,7 @@ Public Class Form1
         assy.SaveAs(newname, False)
 
         Dim NewPrt As PartDocument
-        NewPrt = _invApp.Documents.Add(DocumentTypeEnum.kPartDocumentObject, _invApp.FileManager.GetTemplateFile(DocumentTypeEnum.kPartDocumentObject))
+        NewPrt = _invApp.Documents.Add(DocumentTypeEnum.kPartDocumentObject, _invApp.FileManager.GetTemplateFile(DocumentTypeEnum.kPartDocumentObject), True)
 
         'Create a derived definition for the selected part
         Dim assyderive As DerivedAssemblyDefinition
@@ -1069,63 +1069,14 @@ Public Class Form1
         Dim Profileplane As WorkPlane = NewPrt.ComponentDefinition.WorkPlanes.Item(2)
         Dim ProfileSketch As PlanarSketch = NewPrt.ComponentDefinition.Sketches.Add(Profileplane)
         ProfileSketch.ProjectedCuts.Add()
-
+        Dim DXFName = Replace(newname, ".iam", ".dxf")
+        Call ProfileSketch.DataIO.WriteDataToFile("DXF", DXFName)
+        MsgBox("DXF export is klaar! Klik Yes om de folder met de files te openen" & vbNewLine & DXFName)
         NewPrt.Views.Item(1).GoHome()
 
     End Sub
 
-    'Sub CreateShrinkwrapSubstitute()
-    '    ' Set a reference to the active assembly document
-    '    Dim oDoc As AssemblyDocument
-    'Set oDoc = ThisApplication.ActiveDocument
-
-    'Dim oDef As AssemblyComponentDefinition
-    'Set oDef = oDoc.ComponentDefinition
-
-    '' Create a new part document that will be the shrinkwrap substitute
-    'Dim oPartDoc As PartDocument
-    'Set oPartDoc = ThisApplication.Documents.Add(kPartDocumentObject, , False)
-
-    'Dim oPartDef As PartComponentDefinition
-    'Set oPartDef = oPartDoc.ComponentDefinition
-
-    'Dim oDerivedAssemblyDef As DerivedAssemblyDefinition
-    'Set oDerivedAssemblyDef = oPartDef.ReferenceComponents.DerivedAssemblyComponents.CreateDefinition(oDoc.FullDocumentName)
-
-    '' Set various shrinkwrap related options
-    'oDerivedAssemblyDef.DeriveStyle = kDeriveAsSingleBodyNoSeams
-    '    oDerivedAssemblyDef.IncludeAllTopLevelWorkFeatures = kDerivedIncludeAll
-    '    oDerivedAssemblyDef.IncludeAllTopLevelSketches = kDerivedIncludeAll
-    '    oDerivedAssemblyDef.IncludeAllTopLeveliMateDefinitions = kDerivedExcludeAll
-    '    oDerivedAssemblyDef.IncludeAllTopLevelParameters = kDerivedExcludeAll
-    '    oDerivedAssemblyDef.ReducedMemoryMode = True
-
-    '    Call oDerivedAssemblyDef.SetHolePatchingOptions(kDerivedPatchAll)
-    '    Call oDerivedAssemblyDef.SetRemoveByVisibilityOptions(kDerivedRemovePartsAndFaces, 25)
-
-    '    ' Create the shrinkwrap component
-    '    Dim oDerivedAssembly As DerivedAssemblyComponent
-    'Set oDerivedAssembly = oPartDef.ReferenceComponents.DerivedAssemblyComponents.Add(oDerivedAssemblyDef)
-
-    '' Save the part
-    'Dim strSubstituteFileName As String
-    '    strSubstituteFileName = Left$(oDoc.FullFileName, Len(oDoc.FullFileName) - 4)
-    '    strSubstituteFileName = strSubstituteFileName & "_ShrinkwrapSubstitute.ipt"
-
-    '    ThisApplication.SilentOperation = True
-    '    Call oPartDoc.SaveAs(strSubstituteFileName, False)
-    '    ThisApplication.SilentOperation = False
-
-    '    ' Create a substitute level of detail using the shrinkwrap part.
-    '    Dim oSubstituteLOD As LevelOfDetailRepresentation
-    'Set oSubstituteLOD = oDef.RepresentationsManager.LevelOfDetailRepresentations.AddSubstitute(strSubstituteFileName)
-
-    '' Release reference of the invisibly opened part document.
-    'oPartDoc.ReleaseReference()
-    'End Sub
-
-
-    'Debug tools
+    '************* Debug tools ************
 
     Private Sub Button1_Click(sender As Object, e As EventArgs) Handles Button1.Click
         GetSurfaeID()
