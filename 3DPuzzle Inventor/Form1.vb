@@ -36,13 +36,13 @@ Public Class Form1
     Dim _DebugMode As Boolean = False
     Dim _Colormode As Boolean = True
     Dim _Scaled As Boolean = False
-    Dim _CreateIntersections As Boolean = True
+    Dim _CreateIntersections As Boolean = False
     Dim _Nest As Boolean = True
 
     'Production variables
     Dim _TargetVolume As Double = 5000
     Dim _ToolDiam As Double = 0.02
-    Dim _Toolcomp As Boolean = True
+    Dim _Toolcomp As Boolean = False
 
     Public Sub New()
 
@@ -675,10 +675,10 @@ Public Class Form1
                     extrudelength = (transbool.RangeBox.MaxPoint.X - transbool.RangeBox.MinPoint.X) / 2 + SliceThickness.Value * 4
 
                     'compensation calculation
-                    XBaseComp = _ToolDiam / 2
-                    YBaseComp = 0
-                    XToolComp = 0
-                    YToolComp = _ToolDiam / 2
+                    XBaseComp = 0
+                    YBaseComp = _ToolDiam / 2
+                    XToolComp = _ToolDiam / 2
+                    YToolComp = 0
 
                 Case 2
                     splitDist = (transbool.RangeBox.MaxPoint.Y - transbool.RangeBox.MinPoint.Y) / 2 + transbool.RangeBox.MinPoint.Y
@@ -976,6 +976,17 @@ Public Class Form1
 
         ' and finally add the constraint
         AsmCompDef.Constraints.AddMateConstraint(oPartPlane1, oAssyPlane, dist)
+
+        ' ***** translate geo *******
+
+        ' Get the current transformation matrix from the occurrence.
+        Dim trans As Matrix
+        trans = oOcc1.Transformation
+
+        Dim vect As Vector = _invApp.TransientGeometry.CreateVector(i * 10, 0, 0)
+        trans.SetTranslation(vect)
+        oOcc1.Transformation = trans
+
 
     End Sub
 
