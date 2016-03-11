@@ -49,8 +49,10 @@ Public Class Form1
 
         ' This call is required by the designer.
         InitializeComponent()
-        Me.Left = 1400
-        Me.Top = 500
+
+        Me.Opacity = 50
+        Me.Left = 1510
+        Me.Top = 620
         ' Add any initialization after the InitializeComponent() call.
         Try
             _invApp = Marshal.GetActiveObject("Inventor.Application")

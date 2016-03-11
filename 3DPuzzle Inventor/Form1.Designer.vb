@@ -97,7 +97,7 @@ Partial Class Form1
         Me.GetBodyButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat
         Me.GetBodyButton.Location = New System.Drawing.Point(0, 35)
         Me.GetBodyButton.Name = "GetBodyButton"
-        Me.GetBodyButton.Size = New System.Drawing.Size(471, 94)
+        Me.GetBodyButton.Size = New System.Drawing.Size(358, 62)
         Me.GetBodyButton.TabIndex = 15
         Me.GetBodyButton.UseVisualStyleBackColor = False
         '
@@ -106,13 +106,15 @@ Partial Class Form1
         Me.NESTButton.BackColor = System.Drawing.Color.Transparent
         Me.NESTButton.BackgroundImageLayout = System.Windows.Forms.ImageLayout.None
         Me.NESTButton.Cursor = System.Windows.Forms.Cursors.Hand
+        Me.NESTButton.Enabled = False
         Me.NESTButton.FlatAppearance.BorderSize = 0
         Me.NESTButton.FlatAppearance.MouseDownBackColor = System.Drawing.Color.Transparent
         Me.NESTButton.FlatAppearance.MouseOverBackColor = System.Drawing.Color.Transparent
+        Me.NESTButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat
         Me.NESTButton.ForeColor = System.Drawing.SystemColors.ControlText
-        Me.NESTButton.Location = New System.Drawing.Point(40, 135)
+        Me.NESTButton.Location = New System.Drawing.Point(33, 114)
         Me.NESTButton.Name = "NESTButton"
-        Me.NESTButton.Size = New System.Drawing.Size(477, 93)
+        Me.NESTButton.Size = New System.Drawing.Size(361, 60)
         Me.NESTButton.TabIndex = 16
         Me.NESTButton.UseVisualStyleBackColor = False
         '
@@ -127,13 +129,18 @@ Partial Class Form1
         '
         'GenerateDXFButton
         '
+        Me.GenerateDXFButton.BackColor = System.Drawing.Color.Transparent
+        Me.GenerateDXFButton.Cursor = System.Windows.Forms.Cursors.Hand
         Me.GenerateDXFButton.Enabled = False
-        Me.GenerateDXFButton.Location = New System.Drawing.Point(132, 316)
+        Me.GenerateDXFButton.FlatAppearance.BorderSize = 0
+        Me.GenerateDXFButton.FlatAppearance.MouseDownBackColor = System.Drawing.Color.Transparent
+        Me.GenerateDXFButton.FlatAppearance.MouseOverBackColor = System.Drawing.Color.Transparent
+        Me.GenerateDXFButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+        Me.GenerateDXFButton.Location = New System.Drawing.Point(0, 193)
         Me.GenerateDXFButton.Name = "GenerateDXFButton"
-        Me.GenerateDXFButton.Size = New System.Drawing.Size(111, 23)
+        Me.GenerateDXFButton.Size = New System.Drawing.Size(358, 60)
         Me.GenerateDXFButton.TabIndex = 19
-        Me.GenerateDXFButton.Text = "Generate DXF"
-        Me.GenerateDXFButton.UseVisualStyleBackColor = True
+        Me.GenerateDXFButton.UseVisualStyleBackColor = False
         '
         'Form1
         '
@@ -141,7 +148,7 @@ Partial Class Form1
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.BackgroundImage = CType(resources.GetObject("$this.BackgroundImage"), System.Drawing.Image)
         Me.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom
-        Me.ClientSize = New System.Drawing.Size(517, 466)
+        Me.ClientSize = New System.Drawing.Size(393, 364)
         Me.Controls.Add(Me.GenerateDXFButton)
         Me.Controls.Add(Me.Button1)
         Me.Controls.Add(Me.NESTButton)
@@ -154,7 +161,7 @@ Partial Class Form1
         Me.DoubleBuffered = True
         Me.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None
         Me.Icon = CType(resources.GetObject("$this.Icon"), System.Drawing.Icon)
-        Me.Location = New System.Drawing.Point(800, 200)
+        Me.Location = New System.Drawing.Point(1000, 500)
         Me.Name = "Form1"
         Me.StartPosition = System.Windows.Forms.FormStartPosition.Manual
         Me.Text = "Puzzle Generator"
