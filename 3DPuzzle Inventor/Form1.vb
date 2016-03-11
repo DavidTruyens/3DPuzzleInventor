@@ -36,19 +36,21 @@ Public Class Form1
     Dim _DebugMode As Boolean = False
     Dim _Colormode As Boolean = True
     Dim _Scaled As Boolean = False
-    Dim _CreateIntersections As Boolean = False
+    Dim _CreateIntersections As Boolean = True
     Dim _Nest As Boolean = True
 
     'Production variables
     Dim _TargetVolume As Double = 5000
     Dim _ToolDiam As Double = 0.02
-    Dim _Toolcomp As Boolean = False
+    Dim _Toolcomp As Boolean = True
+    Dim _DXFPath As String = "C:\TechnishowDXF\"
 
     Public Sub New()
 
         ' This call is required by the designer.
         InitializeComponent()
-
+        Me.Left = 1400
+        Me.Top = 500
         ' Add any initialization after the InitializeComponent() call.
         Try
             _invApp = Marshal.GetActiveObject("Inventor.Application")
@@ -66,16 +68,6 @@ Public Class Form1
             End Try
         End Try
 
-        If _invApp.Documents.Count = 0 Then
-            MsgBox("Need to open a Part Document")
-            Return
-        End If
-
-        If _invApp.ActiveDocument.DocumentType <> DocumentTypeEnum.kPartDocumentObject Then
-            MsgBox("Need to have a Part Document active")
-            Return
-        End If
-
         Me.TopMost = True
 
     End Sub
@@ -83,8 +75,20 @@ Public Class Form1
     '************ Interface ***********
 
     Private Sub GetBodyButton_Click(sender As Object, e As EventArgs) Handles GetBodyButton.Click
+
+        If _invApp.Documents.Count = 0 Then
+            MsgBox("Need to open a Part Document")
+            Exit Sub
+        End If
+
+        If _invApp.ActiveDocument.DocumentType <> DocumentTypeEnum.kPartDocumentObject Then
+            MsgBox("Need to have a Part Document active")
+            Exit Sub
+        End If
+
         _OrigDoc = _invApp.ActiveDocument
 
+        EmptyPlates()
         'Get the actual surface body
         Dim body As SurfaceBody = GetBody()
 
@@ -135,6 +139,10 @@ Public Class Form1
 
         End If
 
+    End Sub
+
+    Private Sub Form1_KeyDown(ByVal sender As Object, ByVal e As System.Windows.Forms.KeyEventArgs) Handles MyBase.KeyDown
+        If e.KeyCode = Keys.Escape Then Me.Close()
     End Sub
 
     '************ Start Puzzle ***********
@@ -315,6 +323,12 @@ Public Class Form1
         For Each obody As SurfaceBody In _CompDef.SurfaceBodies
             obody.Visible = True
         Next
+    End Sub
+
+    Private Sub EmptyPlates()
+
+        _PrimPlates.Clear()
+        _SeconPlates.Clear()
     End Sub
 
     '*********** Generate Slices ************
@@ -675,10 +689,10 @@ Public Class Form1
                     extrudelength = (transbool.RangeBox.MaxPoint.X - transbool.RangeBox.MinPoint.X) / 2 + SliceThickness.Value * 4
 
                     'compensation calculation
-                    XBaseComp = 0
-                    YBaseComp = _ToolDiam / 2
-                    XToolComp = _ToolDiam / 2
-                    YToolComp = 0
+                    XBaseComp = _ToolDiam / 2
+                    YBaseComp = 0
+                    XToolComp = 0
+                    YToolComp = _ToolDiam / 2
 
                 Case 2
                     splitDist = (transbool.RangeBox.MaxPoint.Y - transbool.RangeBox.MinPoint.Y) / 2 + transbool.RangeBox.MinPoint.Y
@@ -928,8 +942,8 @@ Public Class Form1
         point1.Y = 0
 
         Dim point2 As Point2d = trans.CreatePoint2d
-        point1.X = 75
-        point1.Y = 60
+        point1.X = -75
+        point1.Y = -60
 
         assysketch.SketchLines.AddAsTwoPointRectangle(point1, point2)
 
@@ -1070,20 +1084,26 @@ Public Class Form1
         assy.SaveAs(newname, False)
 
         Dim NewPrt As PartDocument
-        NewPrt = _invApp.Documents.Add(DocumentTypeEnum.kPartDocumentObject, _invApp.FileManager.GetTemplateFile(DocumentTypeEnum.kPartDocumentObject), True)
+        NewPrt = _invApp.Documents.Add(DocumentTypeEnum.kPartDocumentObject, _invApp.FileManager.GetTemplateFile(DocumentTypeEnum.kPartDocumentObject), _DebugMode)
 
         'Create a derived definition for the selected part
         Dim assyderive As DerivedAssemblyDefinition
         assyderive = NewPrt.ComponentDefinition.ReferenceComponents.DerivedAssemblyComponents.CreateDefinition(assy.FullFileName)
-
         NewPrt.ComponentDefinition.ReferenceComponents.DerivedAssemblyComponents.Add(assyderive)
+
+        'Create profile sketch
         Dim Profileplane As WorkPlane = NewPrt.ComponentDefinition.WorkPlanes.Item(2)
         Dim ProfileSketch As PlanarSketch = NewPrt.ComponentDefinition.Sketches.Add(Profileplane)
         ProfileSketch.ProjectedCuts.Add()
-        Dim DXFName = Replace(newname, ".iam", ".dxf")
+
+        'Save DXF file
+        Dim DXFName As String = _DXFPath + _OrigDoc.DisplayName
+        DXFName = Replace(DXFName, ".ipt", ".dxf")
         Call ProfileSketch.DataIO.WriteDataToFile("DXF", DXFName)
-        MsgBox("DXF export is klaar! Klik Yes om de folder met de files te openen" & vbNewLine & DXFName)
-        NewPrt.Views.Item(1).GoHome()
+
+        If _DebugMode Then NewPrt.Views.Item(1).GoHome()
+
+        MsgBox("DXF export is klaar en beschikbaar in deze folder:" & vbNewLine & DXFName)
 
     End Sub
 

@@ -1,9 +1,9 @@
-﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()> _
+﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()>
 Partial Class Form1
     Inherits System.Windows.Forms.Form
 
     'Form overrides dispose to clean up the component list.
-    <System.Diagnostics.DebuggerNonUserCode()> _
+    <System.Diagnostics.DebuggerNonUserCode()>
     Protected Overrides Sub Dispose(ByVal disposing As Boolean)
         Try
             If disposing AndAlso components IsNot Nothing Then
@@ -20,7 +20,7 @@ Partial Class Form1
     'NOTE: The following procedure is required by the Windows Form Designer
     'It can be modified using the Windows Form Designer.  
     'Do not modify it using the code editor.
-    <System.Diagnostics.DebuggerStepThrough()> _
+    <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Form1))
         Me.Ydir = New System.Windows.Forms.RadioButton()
@@ -39,7 +39,7 @@ Partial Class Form1
         'Ydir
         '
         Me.Ydir.AutoSize = True
-        Me.Ydir.Location = New System.Drawing.Point(126, 32)
+        Me.Ydir.Location = New System.Drawing.Point(132, 502)
         Me.Ydir.Name = "Ydir"
         Me.Ydir.Size = New System.Drawing.Size(43, 17)
         Me.Ydir.TabIndex = 14
@@ -49,7 +49,7 @@ Partial Class Form1
         'Zdir
         '
         Me.Zdir.AutoSize = True
-        Me.Zdir.Location = New System.Drawing.Point(126, 55)
+        Me.Zdir.Location = New System.Drawing.Point(132, 525)
         Me.Zdir.Name = "Zdir"
         Me.Zdir.Size = New System.Drawing.Size(43, 17)
         Me.Zdir.TabIndex = 13
@@ -60,7 +60,7 @@ Partial Class Form1
         '
         Me.Xdir.AutoSize = True
         Me.Xdir.Checked = True
-        Me.Xdir.Location = New System.Drawing.Point(126, 9)
+        Me.Xdir.Location = New System.Drawing.Point(132, 479)
         Me.Xdir.Name = "Xdir"
         Me.Xdir.Size = New System.Drawing.Size(43, 17)
         Me.Xdir.TabIndex = 12
@@ -71,45 +71,56 @@ Partial Class Form1
         'SliceThickness
         '
         Me.SliceThickness.DecimalPlaces = 2
-        Me.SliceThickness.Location = New System.Drawing.Point(29, 125)
+        Me.SliceThickness.Location = New System.Drawing.Point(201, 498)
         Me.SliceThickness.Name = "SliceThickness"
-        Me.SliceThickness.Size = New System.Drawing.Size(111, 20)
+        Me.SliceThickness.Size = New System.Drawing.Size(128, 20)
         Me.SliceThickness.TabIndex = 11
         Me.SliceThickness.Value = New Decimal(New Integer() {4, 0, 0, 65536})
         Me.SliceThickness.Visible = False
         '
         'NumberOfSlices
         '
-        Me.NumberOfSlices.Location = New System.Drawing.Point(29, 99)
+        Me.NumberOfSlices.Location = New System.Drawing.Point(201, 472)
         Me.NumberOfSlices.Name = "NumberOfSlices"
-        Me.NumberOfSlices.Size = New System.Drawing.Size(111, 20)
+        Me.NumberOfSlices.Size = New System.Drawing.Size(128, 20)
         Me.NumberOfSlices.TabIndex = 10
         Me.NumberOfSlices.Value = New Decimal(New Integer() {8, 0, 0, 0})
         '
         'GetBodyButton
         '
-        Me.GetBodyButton.Location = New System.Drawing.Point(6, 5)
+        Me.GetBodyButton.BackColor = System.Drawing.Color.Transparent
+        Me.GetBodyButton.BackgroundImageLayout = System.Windows.Forms.ImageLayout.None
+        Me.GetBodyButton.Cursor = System.Windows.Forms.Cursors.Hand
+        Me.GetBodyButton.FlatAppearance.BorderSize = 0
+        Me.GetBodyButton.FlatAppearance.MouseDownBackColor = System.Drawing.Color.Transparent
+        Me.GetBodyButton.FlatAppearance.MouseOverBackColor = System.Drawing.Color.Transparent
+        Me.GetBodyButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+        Me.GetBodyButton.Location = New System.Drawing.Point(0, 35)
         Me.GetBodyButton.Name = "GetBodyButton"
-        Me.GetBodyButton.Size = New System.Drawing.Size(111, 23)
+        Me.GetBodyButton.Size = New System.Drawing.Size(471, 94)
         Me.GetBodyButton.TabIndex = 15
-        Me.GetBodyButton.Text = "Get body"
-        Me.GetBodyButton.UseVisualStyleBackColor = True
+        Me.GetBodyButton.UseVisualStyleBackColor = False
         '
         'NESTButton
         '
-        Me.NESTButton.Enabled = False
-        Me.NESTButton.Location = New System.Drawing.Point(6, 28)
+        Me.NESTButton.BackColor = System.Drawing.Color.Transparent
+        Me.NESTButton.BackgroundImageLayout = System.Windows.Forms.ImageLayout.None
+        Me.NESTButton.Cursor = System.Windows.Forms.Cursors.Hand
+        Me.NESTButton.FlatAppearance.BorderSize = 0
+        Me.NESTButton.FlatAppearance.MouseDownBackColor = System.Drawing.Color.Transparent
+        Me.NESTButton.FlatAppearance.MouseOverBackColor = System.Drawing.Color.Transparent
+        Me.NESTButton.ForeColor = System.Drawing.SystemColors.ControlText
+        Me.NESTButton.Location = New System.Drawing.Point(40, 135)
         Me.NESTButton.Name = "NESTButton"
-        Me.NESTButton.Size = New System.Drawing.Size(111, 23)
+        Me.NESTButton.Size = New System.Drawing.Size(477, 93)
         Me.NESTButton.TabIndex = 16
-        Me.NESTButton.Text = "Nest it DIY"
-        Me.NESTButton.UseVisualStyleBackColor = True
+        Me.NESTButton.UseVisualStyleBackColor = False
         '
         'Button1
         '
-        Me.Button1.Location = New System.Drawing.Point(29, 151)
+        Me.Button1.Location = New System.Drawing.Point(201, 524)
         Me.Button1.Name = "Button1"
-        Me.Button1.Size = New System.Drawing.Size(111, 20)
+        Me.Button1.Size = New System.Drawing.Size(128, 20)
         Me.Button1.TabIndex = 18
         Me.Button1.Text = "Get Surface ID"
         Me.Button1.UseVisualStyleBackColor = True
@@ -117,7 +128,7 @@ Partial Class Form1
         'GenerateDXFButton
         '
         Me.GenerateDXFButton.Enabled = False
-        Me.GenerateDXFButton.Location = New System.Drawing.Point(6, 51)
+        Me.GenerateDXFButton.Location = New System.Drawing.Point(132, 316)
         Me.GenerateDXFButton.Name = "GenerateDXFButton"
         Me.GenerateDXFButton.Size = New System.Drawing.Size(111, 23)
         Me.GenerateDXFButton.TabIndex = 19
@@ -128,7 +139,9 @@ Partial Class Form1
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
-        Me.ClientSize = New System.Drawing.Size(174, 81)
+        Me.BackgroundImage = CType(resources.GetObject("$this.BackgroundImage"), System.Drawing.Image)
+        Me.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom
+        Me.ClientSize = New System.Drawing.Size(517, 466)
         Me.Controls.Add(Me.GenerateDXFButton)
         Me.Controls.Add(Me.Button1)
         Me.Controls.Add(Me.NESTButton)
@@ -138,8 +151,12 @@ Partial Class Form1
         Me.Controls.Add(Me.Xdir)
         Me.Controls.Add(Me.SliceThickness)
         Me.Controls.Add(Me.NumberOfSlices)
+        Me.DoubleBuffered = True
+        Me.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None
         Me.Icon = CType(resources.GetObject("$this.Icon"), System.Drawing.Icon)
+        Me.Location = New System.Drawing.Point(800, 200)
         Me.Name = "Form1"
+        Me.StartPosition = System.Windows.Forms.FormStartPosition.Manual
         Me.Text = "Puzzle Generator"
         CType(Me.SliceThickness, System.ComponentModel.ISupportInitialize).EndInit()
         CType(Me.NumberOfSlices, System.ComponentModel.ISupportInitialize).EndInit()
