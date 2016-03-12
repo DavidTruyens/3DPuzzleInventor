@@ -79,18 +79,33 @@ Public Class Form1
     Private Sub GetBodyButton_Click(sender As Object, e As EventArgs) Handles GetBodyButton.Click
 
         If _invApp.Documents.Count = 0 Then
-            MsgBox("Need to open a Part Document")
+            MsgBox("Zorg dat je een part document actief hebt")
             Exit Sub
         End If
 
         If _invApp.ActiveDocument.DocumentType <> DocumentTypeEnum.kPartDocumentObject Then
-            MsgBox("Need to have a Part Document active")
+            MsgBox("Zorg dat je een part document actief hebt")
             Exit Sub
         End If
 
         _OrigDoc = _invApp.ActiveDocument
 
         EmptyPlates()
+
+        Dim test = New Form2
+        If test.ShowDialog() = DialogResult.OK Then
+            MsgBox("OK!")
+        End If
+
+
+
+        'Dim directiondial = New DirectionForm()
+
+
+        'If directiondial.ShowDialog() = DialogResult.Yes Then
+        '    MsgBox("YES!!")
+        'End If
+
         'Get the actual surface body
         Dim body As SurfaceBody = GetBody()
 
