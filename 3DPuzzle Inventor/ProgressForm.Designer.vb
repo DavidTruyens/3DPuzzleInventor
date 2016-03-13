@@ -31,9 +31,9 @@ Partial Class ProgressForm
         '
         'ProgressBar1
         '
-        Me.ProgressBar1.Location = New System.Drawing.Point(0, 0)
+        Me.ProgressBar1.Location = New System.Drawing.Point(-1, 12)
         Me.ProgressBar1.Name = "ProgressBar1"
-        Me.ProgressBar1.Size = New System.Drawing.Size(285, 23)
+        Me.ProgressBar1.Size = New System.Drawing.Size(285, 25)
         Me.ProgressBar1.Step = 1
         Me.ProgressBar1.TabIndex = 0
         '
@@ -45,10 +45,12 @@ Partial Class ProgressForm
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
-        Me.ClientSize = New System.Drawing.Size(284, 23)
+        Me.ClientSize = New System.Drawing.Size(284, 49)
         Me.Controls.Add(Me.ProgressBar1)
+        Me.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None
         Me.Icon = CType(resources.GetObject("$this.Icon"), System.Drawing.Icon)
         Me.Name = "ProgressForm"
+        Me.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen
         Me.Text = "ProgressForm"
         CType(Me.ErrorProvider1, System.ComponentModel.ISupportInitialize).EndInit()
         Me.ResumeLayout(False)

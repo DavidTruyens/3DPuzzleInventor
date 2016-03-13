@@ -22,30 +22,77 @@ Partial Class Form2
     'Do not modify it using the code editor.
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
-        Me.Button1 = New System.Windows.Forms.Button()
+        Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Form2))
+        Me.NewXbutton = New System.Windows.Forms.Button()
+        Me.NewYButton = New System.Windows.Forms.Button()
+        Me.NewZButton = New System.Windows.Forms.Button()
         Me.SuspendLayout()
         '
-        'Button1
+        'NewXbutton
         '
-        Me.Button1.Location = New System.Drawing.Point(0, 0)
-        Me.Button1.Name = "Button1"
-        Me.Button1.Size = New System.Drawing.Size(75, 23)
-        Me.Button1.TabIndex = 0
-        Me.Button1.Text = "Button1"
-        Me.Button1.UseVisualStyleBackColor = True
+        Me.NewXbutton.BackColor = System.Drawing.Color.Transparent
+        Me.NewXbutton.Cursor = System.Windows.Forms.Cursors.Hand
+        Me.NewXbutton.FlatAppearance.BorderSize = 0
+        Me.NewXbutton.FlatAppearance.MouseDownBackColor = System.Drawing.Color.Transparent
+        Me.NewXbutton.FlatAppearance.MouseOverBackColor = System.Drawing.Color.Transparent
+        Me.NewXbutton.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+        Me.NewXbutton.ForeColor = System.Drawing.Color.Transparent
+        Me.NewXbutton.Location = New System.Drawing.Point(8, 23)
+        Me.NewXbutton.Name = "NewXbutton"
+        Me.NewXbutton.Size = New System.Drawing.Size(81, 87)
+        Me.NewXbutton.TabIndex = 0
+        Me.NewXbutton.UseVisualStyleBackColor = False
+        '
+        'NewYButton
+        '
+        Me.NewYButton.BackColor = System.Drawing.Color.Transparent
+        Me.NewYButton.Cursor = System.Windows.Forms.Cursors.Hand
+        Me.NewYButton.FlatAppearance.BorderSize = 0
+        Me.NewYButton.FlatAppearance.MouseDownBackColor = System.Drawing.Color.Transparent
+        Me.NewYButton.FlatAppearance.MouseOverBackColor = System.Drawing.Color.Transparent
+        Me.NewYButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+        Me.NewYButton.ForeColor = System.Drawing.Color.Transparent
+        Me.NewYButton.Location = New System.Drawing.Point(102, 21)
+        Me.NewYButton.Name = "NewYButton"
+        Me.NewYButton.Size = New System.Drawing.Size(81, 87)
+        Me.NewYButton.TabIndex = 1
+        Me.NewYButton.UseVisualStyleBackColor = False
+        '
+        'NewZButton
+        '
+        Me.NewZButton.BackColor = System.Drawing.Color.Transparent
+        Me.NewZButton.Cursor = System.Windows.Forms.Cursors.Hand
+        Me.NewZButton.FlatAppearance.BorderSize = 0
+        Me.NewZButton.FlatAppearance.MouseDownBackColor = System.Drawing.Color.Transparent
+        Me.NewZButton.FlatAppearance.MouseOverBackColor = System.Drawing.Color.Transparent
+        Me.NewZButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+        Me.NewZButton.ForeColor = System.Drawing.Color.Transparent
+        Me.NewZButton.Location = New System.Drawing.Point(195, 21)
+        Me.NewZButton.Name = "NewZButton"
+        Me.NewZButton.Size = New System.Drawing.Size(81, 87)
+        Me.NewZButton.TabIndex = 2
+        Me.NewZButton.UseVisualStyleBackColor = False
         '
         'Form2
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
-        Me.ClientSize = New System.Drawing.Size(284, 261)
-        Me.Controls.Add(Me.Button1)
+        Me.BackgroundImage = CType(resources.GetObject("$this.BackgroundImage"), System.Drawing.Image)
+        Me.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom
+        Me.ClientSize = New System.Drawing.Size(284, 113)
+        Me.Controls.Add(Me.NewZButton)
+        Me.Controls.Add(Me.NewYButton)
+        Me.Controls.Add(Me.NewXbutton)
+        Me.DoubleBuffered = True
         Me.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None
         Me.Name = "Form2"
+        Me.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen
         Me.Text = "Form2"
         Me.ResumeLayout(False)
 
     End Sub
 
-    Friend WithEvents Button1 As Button
+    Friend WithEvents NewXbutton As Button
+    Friend WithEvents NewYButton As Button
+    Friend WithEvents NewZButton As Button
 End Class

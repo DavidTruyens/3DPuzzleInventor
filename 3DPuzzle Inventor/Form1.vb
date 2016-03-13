@@ -94,17 +94,12 @@ Public Class Form1
 
         Dim test = New Form2
         If test.ShowDialog() = DialogResult.OK Then
-            MsgBox("OK!")
+            _PullDir = 1
+        ElseIf test.ShowDialog() = DialogResult.Yes Then
+            _PullDir = 2
+        Else
+            _PullDir = 3
         End If
-
-
-
-        'Dim directiondial = New DirectionForm()
-
-
-        'If directiondial.ShowDialog() = DialogResult.Yes Then
-        '    MsgBox("YES!!")
-        'End If
 
         'Get the actual surface body
         Dim body As SurfaceBody = GetBody()
@@ -258,7 +253,7 @@ Public Class Form1
 
         Dim Length As Double
 
-        If Zdir.Checked Then
+        If _PullDir = 3 Then
             _SplitDir = 3
             _BaseBodyCenter = Zlength / 2 + BoundingBox.MinPoint.Z
             If Xlength >= Ylength Then
@@ -268,7 +263,7 @@ Public Class Form1
                 Length = Ylength
                 MainDir = 2
             End If
-        ElseIf Xdir.Checked Then
+        ElseIf _PullDir = 1 Then
             _SplitDir = 1
             _BaseBodyCenter = Xlength / 2 + BoundingBox.MinPoint.X
             If Ylength >= Zlength Then
@@ -364,7 +359,7 @@ Public Class Form1
             Case 1
                 mainposition = baseBody.RangeBox.MinPoint.X + _Spacing / 2
                 basePlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(1), mainposition)
-                If Zdir.Checked Then
+                If _PullDir = 3 Then
                     secondarypostion = SecondaryStart(baseBody, 2)
                 Else
                     secondarypostion = SecondaryStart(baseBody, 3)
@@ -373,7 +368,7 @@ Public Class Form1
             Case 2
                 mainposition = baseBody.RangeBox.MinPoint.Y + _Spacing / 2
                 basePlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(2), mainposition)
-                If Zdir.Checked Then
+                If _PullDir = 3 Then
                     secondarypostion = SecondaryStart(baseBody, 1)
                 Else
                     secondarypostion = SecondaryStart(baseBody, 3)
@@ -381,7 +376,7 @@ Public Class Form1
             Case Else
                 mainposition = baseBody.RangeBox.MinPoint.Z + _Spacing / 2
                 basePlane = _CompDef.WorkPlanes.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(3), mainposition)
-                If Ydir.Checked Then
+                If _PullDir = 2 Then
                     secondarypostion = SecondaryStart(baseBody, 1)
                 Else
                     secondarypostion = SecondaryStart(baseBody, 2)
@@ -1126,7 +1121,7 @@ Public Class Form1
 
     '************* Debug tools ************
 
-    Private Sub Button1_Click(sender As Object, e As EventArgs) Handles Button1.Click
+    Private Sub Button1_Click(sender As Object, e As EventArgs)
         GetSurfaeID()
     End Sub
 
@@ -1180,32 +1175,6 @@ Public Class Form1
         boundingboxZmin.Visible = False
         boundingboxZmax.Visible = False
 
-    End Sub
-
-    '************* Radio toggles *********
-
-    Private Sub Xdir_CheckedChanged(sender As Object, e As EventArgs)
-        If Xdir.Checked Then
-            Ydir.Checked = False
-            Zdir.Checked = False
-            _PullDir = 1
-        End If
-    End Sub
-
-    Private Sub Ydir_CheckedChanged(sender As Object, e As EventArgs)
-        If Ydir.Checked Then
-            Xdir.Checked = False
-            Zdir.Checked = False
-            _PullDir = 2
-        End If
-    End Sub
-
-    Private Sub Zdir_CheckedChanged(sender As Object, e As EventArgs)
-        If Zdir.Checked Then
-            Xdir.Checked = False
-            Ydir.Checked = False
-            _PullDir = 3
-        End If
     End Sub
 
 End Class
