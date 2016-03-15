@@ -48,7 +48,7 @@ Partial Class Form1
         Me.NumberOfSlices.Name = "NumberOfSlices"
         Me.NumberOfSlices.Size = New System.Drawing.Size(128, 20)
         Me.NumberOfSlices.TabIndex = 10
-        Me.NumberOfSlices.Value = New Decimal(New Integer() {6, 0, 0, 0})
+        Me.NumberOfSlices.Value = New Decimal(New Integer() {8, 0, 0, 0})
         '
         'GetBodyButton
         '
@@ -103,7 +103,7 @@ Partial Class Form1
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.BackgroundImage = CType(resources.GetObject("$this.BackgroundImage"), System.Drawing.Image)
         Me.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom
-        Me.ClientSize = New System.Drawing.Size(393, 354)
+        Me.ClientSize = New System.Drawing.Size(393, 362)
         Me.Controls.Add(Me.GenerateDXFButton)
         Me.Controls.Add(Me.NESTButton)
         Me.Controls.Add(Me.GetBodyButton)

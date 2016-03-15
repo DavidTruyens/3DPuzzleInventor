@@ -52,7 +52,7 @@ Public Class Form1
 
         Opacity = 50
         Left = 1520
-        Top = 660
+        Top = 630
         ' Add any initialization after the InitializeComponent() call.
         Try
             _invApp = Marshal.GetActiveObject("Inventor.Application")
@@ -736,10 +736,10 @@ Public Class Form1
                     extrudelength = (transbool.RangeBox.MaxPoint.Z - transbool.RangeBox.MinPoint.Z) / 2 + SliceThickness.Value * 4
 
                     'compensation calculation
-                    XBaseComp = 0
-                    YBaseComp = _ToolDiam / 2
-                    XToolComp = _ToolDiam / 2
-                    YToolComp = 0
+                    XBaseComp = _ToolDiam / 2
+                    YBaseComp = 0
+                    XToolComp = 0
+                    YToolComp = _ToolDiam / 2
             End Select
 
             splitplane.Visible = False
