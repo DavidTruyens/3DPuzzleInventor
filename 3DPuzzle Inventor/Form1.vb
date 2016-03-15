@@ -40,7 +40,7 @@ Public Class Form1
     Dim _Nest As Boolean = True
 
     'Production variables
-    Dim _TargetVolume As Double = 5000
+    Dim _TargetVolume As Double = 3000
     Dim _ToolDiam As Double = 0.02
     Dim _Toolcomp As Boolean = True
     Dim _DXFPath As String = "C:\TechnishowDXF\"
@@ -50,9 +50,9 @@ Public Class Form1
         ' This call is required by the designer.
         InitializeComponent()
 
-        Me.Opacity = 50
-        Me.Left = 1510
-        Me.Top = 620
+        Opacity = 50
+        Left = 1520
+        Top = 660
         ' Add any initialization after the InitializeComponent() call.
         Try
             _invApp = Marshal.GetActiveObject("Inventor.Application")
@@ -92,10 +92,10 @@ Public Class Form1
 
         EmptyPlates()
 
-        Dim test = New Form2
-        If test.ShowDialog() = DialogResult.OK Then
+        Dim DirectionForm = New Form2
+        If DirectionForm.ShowDialog() = DialogResult.OK Then
             _PullDir = 1
-        ElseIf test.ShowDialog() = DialogResult.Yes Then
+        ElseIf DirectionForm.ShowDialog() = DialogResult.Yes Then
             _PullDir = 2
         Else
             _PullDir = 3
@@ -117,16 +117,26 @@ Public Class Form1
             'only needed to see the deviation of the boundingbox with freeform models
             If _DebugMode Then boundingboxcheck(startbody)
 
-            'Createion of the slices in two directions
+
+            'Dim Slicethread As Thread
+            'Slicethread = New Thread(AddressOf GenerateSlices)
+            'Slicethread.Start()
+
+            'Creation of the slices in two directions
             GenerateSlices(startbody)
 
             'Makes components visible and colors the first plates in each direction
             makebodiesvisible()
 
+
+            'Dim intersectthread As Thread
+            'intersectthread = New Thread(AddressOf CreateIntersections)
+            'intersectthread.Start()
+
             'Creates intesections in plates. Plates who don't have an intersection will be turned invisible
             If _CreateIntersections Then CreateIntersections()
 
-            MsgBox("Platen zijn klaar! Controleer de resultaten, maak aanpassingen indien nodig" & vbNewLine & "Als je tevreden bent van het resultaat klik de Nest knop.", MsgBoxStyle.OkOnly, "Puzzel klaar")
+            MsgBox("Platen zijn klaar! Controleer de resultaten, maak aanpassingen indien nodig" & vbNewLine & "Als je tevreden bent van het resultaat ga je naar de volgende stap.", MsgBoxStyle.OkOnly, "Puzzel klaar")
 
             NESTButton.Enabled = True
 
@@ -701,10 +711,10 @@ Public Class Form1
                     extrudelength = (transbool.RangeBox.MaxPoint.X - transbool.RangeBox.MinPoint.X) / 2 + SliceThickness.Value * 4
 
                     'compensation calculation
-                    XBaseComp = _ToolDiam / 2
-                    YBaseComp = 0
-                    XToolComp = 0
-                    YToolComp = _ToolDiam / 2
+                    XBaseComp = 0
+                    YBaseComp = _ToolDiam / 2
+                    XToolComp = _ToolDiam / 2
+                    YToolComp = 0
 
                 Case 2
                     splitDist = (transbool.RangeBox.MaxPoint.Y - transbool.RangeBox.MinPoint.Y) / 2 + transbool.RangeBox.MinPoint.Y
@@ -1107,6 +1117,11 @@ Public Class Form1
         Dim Profileplane As WorkPlane = NewPrt.ComponentDefinition.WorkPlanes.Item(2)
         Dim ProfileSketch As PlanarSketch = NewPrt.ComponentDefinition.Sketches.Add(Profileplane)
         ProfileSketch.ProjectedCuts.Add()
+
+        'Create folder if needed
+        If Not My.Computer.FileSystem.DirectoryExists(_DXFPath) Then
+            My.Computer.FileSystem.CreateDirectory(_DXFPath)
+        End If
 
         'Save DXF file
         Dim DXFName As String = _DXFPath + _OrigDoc.DisplayName
