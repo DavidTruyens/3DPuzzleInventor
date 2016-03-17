@@ -51,8 +51,8 @@ Public Class Form1
         InitializeComponent()
 
         Opacity = 50
-        Left = 1520
-        Top = 630
+        Left = 1520 '+ 640
+        Top = 630 '+ 360
         ' Add any initialization after the InitializeComponent() call.
         Try
             _invApp = Marshal.GetActiveObject("Inventor.Application")
