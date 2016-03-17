@@ -700,6 +700,7 @@ Public Class Form1
             Dim YBaseComp As Double
             Dim XToolComp As Double
             Dim YToolComp As Double
+            Dim CompDir As Boolean = False
 
             Select Case _SplitDir
                 Case 1
@@ -709,12 +710,11 @@ Public Class Form1
                     basebodycenter = BasePlate.PlateSurfBodyID.RangeBox.MinPoint.X + (BasePlate.PlateSurfBodyID.RangeBox.MaxPoint.X - BasePlate.PlateSurfBodyID.RangeBox.MinPoint.X) / 2
                     toolbodycenter = ToolPlate.PlateSurfBodyID.RangeBox.MinPoint.X + (ToolPlate.PlateSurfBodyID.RangeBox.MaxPoint.X - ToolPlate.PlateSurfBodyID.RangeBox.MinPoint.X) / 2
                     extrudelength = (transbool.RangeBox.MaxPoint.X - transbool.RangeBox.MinPoint.X) / 2 + SliceThickness.Value * 4
-
-                    'compensation calculation
-                    XBaseComp = 0
-                    YBaseComp = _ToolDiam / 2
-                    XToolComp = _ToolDiam / 2
-                    YToolComp = 0
+                    If _SecondaryDir = 2 Then
+                        CompDir = True
+                    Else
+                        CompDir = False
+                    End If
 
                 Case 2
                     splitDist = (transbool.RangeBox.MaxPoint.Y - transbool.RangeBox.MinPoint.Y) / 2 + transbool.RangeBox.MinPoint.Y
@@ -722,12 +722,12 @@ Public Class Form1
                     basebodycenter = BasePlate.PlateSurfBodyID.RangeBox.MinPoint.Y + (BasePlate.PlateSurfBodyID.RangeBox.MaxPoint.Y - BasePlate.PlateSurfBodyID.RangeBox.MinPoint.Y) / 2
                     toolbodycenter = ToolPlate.PlateSurfBodyID.RangeBox.MinPoint.Y + (ToolPlate.PlateSurfBodyID.RangeBox.MaxPoint.Y - ToolPlate.PlateSurfBodyID.RangeBox.MinPoint.Y) / 2
                     extrudelength = (transbool.RangeBox.MaxPoint.Y - transbool.RangeBox.MinPoint.Y) / 2 + SliceThickness.Value * 4
+                    If _SecondaryDir = 2 Then
+                        CompDir = False
+                    Else
+                        CompDir = True
+                    End If
 
-                    'compensation calculation
-                    XBaseComp = _ToolDiam / 2
-                    YBaseComp = 0
-                    XToolComp = 0
-                    YToolComp = _ToolDiam / 2
                 Case Else
                     splitDist = (transbool.RangeBox.MaxPoint.Z - transbool.RangeBox.MinPoint.Z) / 2 + transbool.RangeBox.MinPoint.Z
                     splitplane = WorkPlns.AddByPlaneAndOffset(_CompDef.WorkPlanes.Item(3), splitDist)
@@ -735,12 +735,25 @@ Public Class Form1
                     toolbodycenter = ToolPlate.PlateSurfBodyID.RangeBox.MinPoint.Z + (ToolPlate.PlateSurfBodyID.RangeBox.MaxPoint.Z - ToolPlate.PlateSurfBodyID.RangeBox.MinPoint.Z) / 2
                     extrudelength = (transbool.RangeBox.MaxPoint.Z - transbool.RangeBox.MinPoint.Z) / 2 + SliceThickness.Value * 4
 
-                    'compensation calculation
-                    XBaseComp = _ToolDiam / 2
-                    YBaseComp = 0
-                    XToolComp = 0
-                    YToolComp = _ToolDiam / 2
+                    If _SecondaryDir = 1 Then
+                        CompDir = True
+                    Else
+                        CompDir = False
+                    End If
             End Select
+
+            'compensation calculation
+            If CompDir Then
+                XBaseComp = _ToolDiam / 2
+                YBaseComp = 0
+                XToolComp = 0
+                YToolComp = _ToolDiam / 2
+            Else
+                XBaseComp = 0
+                YBaseComp = _ToolDiam / 2
+                XToolComp = _ToolDiam / 2
+                YToolComp = 0
+            End If
 
             splitplane.Visible = False
 
