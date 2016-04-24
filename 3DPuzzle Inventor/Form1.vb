@@ -7,6 +7,7 @@ Imports System.Runtime.InteropServices
 Imports Inventor
 Imports System.IO
 
+'Production interface where all parameters are exposed
 
 Public Class Form1
     'global variables
