@@ -51,9 +51,10 @@ Public Class Form1
         ' This call is required by the designer.
         InitializeComponent()
 
-        Opacity = 50
-        Left = 1520 '+ 640
-        Top = 630 '+ 360
+        'Opacity = 50
+        'Left = 1520 '+ 640
+        'Top = 630 '+ 360
+
         ' Add any initialization after the InitializeComponent() call.
         Try
             _invApp = Marshal.GetActiveObject("Inventor.Application")
@@ -79,6 +80,10 @@ Public Class Form1
 
     Private Sub GetBodyButton_Click(sender As Object, e As EventArgs) Handles GetBodyButton.Click
 
+        _TargetVolume = TargetVolBox.Value
+        _ToolDiam = ToolDiamBox.Value / 10
+        _Toolcomp = ToolCompensation.Checked
+
         If _invApp.Documents.Count = 0 Then
             MsgBox("Zorg dat je een part document actief hebt")
             Exit Sub
@@ -92,15 +97,6 @@ Public Class Form1
         _OrigDoc = _invApp.ActiveDocument
 
         EmptyPlates()
-
-        Dim DirectionForm = New Form2
-        If DirectionForm.ShowDialog() = DialogResult.OK Then
-            _PullDir = 1
-        ElseIf DirectionForm.ShowDialog() = DialogResult.Yes Then
-            _PullDir = 2
-        Else
-            _PullDir = 3
-        End If
 
         'Get the actual surface body
         Dim body As SurfaceBody = GetBody()
@@ -222,7 +218,12 @@ Public Class Form1
             DerivedPrtDef.Solids.Item(i).IncludeEntity = True
 
             ' set the scale to use
-            DerivedPrtDef.ScaleFactor = Math.Pow(_TargetVolume / origVol, 1 / 3)
+            If ScalingCheckBox.Checked Then
+                DerivedPrtDef.ScaleFactor = Math.Pow(_TargetVolume / origVol, 1 / 3)
+            Else
+                DerivedPrtDef.ScaleFactor = 1
+            End If
+
 
             ' Create the derived part.
             NewPrt.ComponentDefinition.ReferenceComponents.DerivedPartComponents.Add(DerivedPrtDef)
@@ -745,15 +746,31 @@ Public Class Form1
 
             'compensation calculation
             If CompDir Then
-                XBaseComp = _ToolDiam / 2
-                YBaseComp = 0
-                XToolComp = 0
-                YToolComp = _ToolDiam / 2
+                If ToolReverse.Checked Then
+                    XBaseComp = 0
+                    YBaseComp = _ToolDiam / 2
+                    XToolComp = _ToolDiam / 2
+                    YToolComp = 0
+                Else
+                    XBaseComp = _ToolDiam / 2
+                    YBaseComp = 0
+                    XToolComp = 0
+                    YToolComp = _ToolDiam / 2
+                End If
+
             Else
-                XBaseComp = 0
-                YBaseComp = _ToolDiam / 2
-                XToolComp = _ToolDiam / 2
-                YToolComp = 0
+                If ToolReverse.Checked Then
+                    XBaseComp = _ToolDiam / 2
+                    YBaseComp = 0
+                    XToolComp = 0
+                    YToolComp = _ToolDiam / 2
+                Else
+                    XBaseComp = 0
+                    YBaseComp = _ToolDiam / 2
+                    XToolComp = _ToolDiam / 2
+                    YToolComp = 0
+                End If
+
             End If
 
             splitplane.Visible = False
@@ -761,19 +778,43 @@ Public Class Form1
             If Not hasdirection Then
                 If Math.Abs(_BaseBodyCenter - basebodycenter) + 0.05 >= Math.Abs(_BaseBodyCenter - toolbodycenter) Then
                     If basebodycenter + 0.05 - _BaseBodyCenter >= 0 Then
-                        basecutdir = PartFeatureExtentDirectionEnum.kPositiveExtentDirection
-                        toolcutdir = PartFeatureExtentDirectionEnum.kNegativeExtentDirection
+                        If CutOutRev.Checked Then
+                            basecutdir = PartFeatureExtentDirectionEnum.kNegativeExtentDirection
+                            toolcutdir = PartFeatureExtentDirectionEnum.kPositiveExtentDirection
+                        Else
+                            basecutdir = PartFeatureExtentDirectionEnum.kPositiveExtentDirection
+                            toolcutdir = PartFeatureExtentDirectionEnum.kNegativeExtentDirection
+                        End If
+
                     Else
-                        basecutdir = PartFeatureExtentDirectionEnum.kNegativeExtentDirection
-                        toolcutdir = PartFeatureExtentDirectionEnum.kPositiveExtentDirection
+                        If CutOutRev.Checked Then
+                            basecutdir = PartFeatureExtentDirectionEnum.kPositiveExtentDirection
+                            toolcutdir = PartFeatureExtentDirectionEnum.kNegativeExtentDirection
+                        Else
+                            basecutdir = PartFeatureExtentDirectionEnum.kNegativeExtentDirection
+                            toolcutdir = PartFeatureExtentDirectionEnum.kPositiveExtentDirection
+
+                        End If
                     End If
                 Else
                     If toolbodycenter + 0.05 - _BaseBodyCenter >= 0 Then
-                        basecutdir = PartFeatureExtentDirectionEnum.kNegativeExtentDirection
-                        toolcutdir = PartFeatureExtentDirectionEnum.kPositiveExtentDirection
+                        If CutOutRev.Checked Then
+                            basecutdir = PartFeatureExtentDirectionEnum.kPositiveExtentDirection
+                            toolcutdir = PartFeatureExtentDirectionEnum.kNegativeExtentDirection
+                        Else
+                            basecutdir = PartFeatureExtentDirectionEnum.kNegativeExtentDirection
+                            toolcutdir = PartFeatureExtentDirectionEnum.kPositiveExtentDirection
+
+                        End If
                     Else
-                        basecutdir = PartFeatureExtentDirectionEnum.kPositiveExtentDirection
-                        toolcutdir = PartFeatureExtentDirectionEnum.kNegativeExtentDirection
+                        If CutOutRev.Checked Then
+                            basecutdir = PartFeatureExtentDirectionEnum.kNegativeExtentDirection
+                            toolcutdir = PartFeatureExtentDirectionEnum.kPositiveExtentDirection
+                        Else
+                            basecutdir = PartFeatureExtentDirectionEnum.kPositiveExtentDirection
+                            toolcutdir = PartFeatureExtentDirectionEnum.kNegativeExtentDirection
+                        End If
+
                     End If
                 End If
             End If
@@ -1138,41 +1179,26 @@ Public Class Form1
         End If
 
         'Save DXF file
-        Dim DXFName As String = _DXFPath + _OrigDoc.DisplayName
+        Dim DXFName As String = _OrigDoc.DisplayName '_DXFPath +
         DXFName = Replace(DXFName, ".ipt", ".dxf")
-        Call ProfileSketch.DataIO.WriteDataToFile("DXF", DXFName)
+
+        Dim SaveFileDial As New SaveFileDialog
+        SaveFileDial.FileName = DXFName
+        SaveFileDial.Filter = "DXF files | *.dxf"
+        SaveFileDial.Title = "Save your DXF file"
+        SaveFileDial.InitialDirectory = System.Environment.GetFolderPath(System.Environment.SpecialFolder.Desktop)
+        SaveFileDial.ShowDialog()
+
+
+        Call ProfileSketch.DataIO.WriteDataToFile("DXF", SaveFileDial.FileName)
 
         If _DebugMode Then NewPrt.Views.Item(1).GoHome()
 
-        MsgBox("DXF export is klaar en beschikbaar in deze folder:" & vbNewLine & DXFName)
+        MsgBox("DXF export is klaar en beschikbaar in deze folder:" & vbNewLine & SaveFileDial.FileName)
 
     End Sub
 
     '************* Debug tools ************
-
-    Private Sub Button1_Click(sender As Object, e As EventArgs)
-        GetSurfaeID()
-    End Sub
-
-    Private Sub GetSurfaeID()
-        Dim face As Face = _invApp.CommandManager.Pick(SelectionFilterEnum.kPartFaceFilter, "select a face")
-        Dim doc As Document = _invApp.ActiveDocument
-        MsgBox(face.InternalName)
-
-        If doc.DocumentType = DocumentTypeEnum.kAssemblyDocumentObject Then
-            Dim assydoc As AssemblyDocument = doc
-            Dim doccomp As AssemblyComponentDefinition = assydoc.ComponentDefinition
-
-
-        ElseIf doc.DocumentType = DocumentTypeEnum.kPartDocumentObject Then
-            Dim partdoc As PartDocument = doc
-            Dim doccomp As PartComponentDefinition = partdoc.ComponentDefinition
-        Else
-            MsgBox("please open a part or an assembly document")
-            Exit Sub
-        End If
-
-    End Sub
 
     Private Sub boundingboxcheck(basebody As SurfaceBody)
 
@@ -1204,6 +1230,32 @@ Public Class Form1
         boundingboxZmin.Visible = False
         boundingboxZmax.Visible = False
 
+    End Sub
+
+    '************ Radio buttons ***********
+
+    Private Sub XDirRadio_CheckedChanged(sender As Object, e As EventArgs) Handles XDirRadio.CheckedChanged
+        If XDirRadio.Checked = True Then
+            _PullDir = 1
+            YDirRadio.Checked = False
+            ZDirRadio.Checked = False
+        End If
+    End Sub
+
+    Private Sub YDirRadio_CheckedChanged(sender As Object, e As EventArgs) Handles YDirRadio.CheckedChanged
+        If YDirRadio.Checked = True Then
+            _PullDir = 2
+            XDirRadio.Checked = False
+            ZDirRadio.Checked = False
+        End If
+    End Sub
+
+    Private Sub ZDirRadio_CheckedChanged(sender As Object, e As EventArgs) Handles ZDirRadio.CheckedChanged
+        If ZDirRadio.Checked = True Then
+            _PullDir = 3
+            XDirRadio.Checked = False
+            YDirRadio.Checked = False
+        End If
     End Sub
 
 End Class
