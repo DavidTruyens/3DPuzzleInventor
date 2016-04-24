@@ -85,12 +85,12 @@ Public Class Form1
         _Toolcomp = ToolCompensation.Checked
 
         If _invApp.Documents.Count = 0 Then
-            MsgBox("Zorg dat je een part document actief hebt")
+            MsgBox("Make sure you have a part document active")
             Exit Sub
         End If
 
         If _invApp.ActiveDocument.DocumentType <> DocumentTypeEnum.kPartDocumentObject Then
-            MsgBox("Zorg dat je een part document actief hebt")
+            MsgBox("Make sure you have a part document active")
             Exit Sub
         End If
 
@@ -133,7 +133,7 @@ Public Class Form1
             'Creates intesections in plates. Plates who don't have an intersection will be turned invisible
             If _CreateIntersections Then CreateIntersections()
 
-            MsgBox("Platen zijn klaar! Controleer de resultaten, maak aanpassingen indien nodig" & vbNewLine & "Als je tevreden bent van het resultaat ga je naar de volgende stap.", MsgBoxStyle.OkOnly, "Puzzel klaar")
+            MsgBox("Platers are finished! Check the results and make changes if necessary." & vbNewLine & "When finished go to the next step.", MsgBoxStyle.OkOnly, "Puzzle creation finished")
 
             NESTButton.Enabled = True
 
@@ -145,7 +145,7 @@ Public Class Form1
 
         CreateFolder()
         _NestAssy = CreateNestAssy()
-        MsgBox("Fit all parts within the sketch box!" & vbNewLine & "Als dat klaar is klik je op de DXF knop")
+        MsgBox("Fit all parts within the sketch box!" & vbNewLine & "When finished click the DXF button")
 
         GenerateDXFButton.Enabled = True
 
