@@ -51,6 +51,7 @@ Partial Class Form1
         'SliceThickness
         '
         Me.SliceThickness.DecimalPlaces = 2
+        Me.SliceThickness.Increment = New Decimal(New Integer() {1, 0, 0, 65536})
         Me.SliceThickness.Location = New System.Drawing.Point(298, 68)
         Me.SliceThickness.Name = "SliceThickness"
         Me.SliceThickness.Size = New System.Drawing.Size(128, 20)
