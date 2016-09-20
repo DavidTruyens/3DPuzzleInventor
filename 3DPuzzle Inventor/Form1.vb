@@ -51,8 +51,9 @@ Public Class Form1
         InitializeComponent()
 
         Opacity = 50
-        Left = 1520 '+ 640
-        Top = 630 '+ 360
+        Left = Screen.PrimaryScreen.Bounds.Width - 400 '1520 '+ 640
+        Top = Screen.PrimaryScreen.Bounds.Height - 400 ' 630 '+ 360
+
         ' Add any initialization after the InitializeComponent() call.
         Try
             _invApp = Marshal.GetActiveObject("Inventor.Application")
